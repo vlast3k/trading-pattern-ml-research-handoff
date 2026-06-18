@@ -1,0 +1,109 @@
+{
+  "canonical_dir": "data/canonical_orderflow_1s",
+  "baseline_trades": "reports/canonical_corrected_20260611/mnq_06_26_trades.csv",
+  "out_dir": "reports/pattern_ml_20260612",
+  "decision_interval_minutes": 5,
+  "horizon_minutes": 30,
+  "stop_atr": 1.0,
+  "target_r": 2.0,
+  "min_stop_points": 1.0,
+  "commission_round_turn": 3.98,
+  "slippage_ticks_per_side": 1.0,
+  "analog_neighbors": 25,
+  "seed": 20260612,
+  "fixed_cost_dollars": 4.98,
+  "model_backend": "scikit-learn",
+  "model_features": [
+    "direction",
+    "signed_ret_1m",
+    "signed_ret_5m",
+    "signed_ret_15m",
+    "signed_ret_60m",
+    "rv_15m_atr",
+    "range_1m_atr",
+    "signed_dist_vwap_atr",
+    "signed_dist_high_15_atr",
+    "signed_dist_low_15_atr",
+    "signed_dist_high_60_atr",
+    "signed_dist_low_60_atr",
+    "volume_ratio_20",
+    "trades_ratio_20",
+    "signed_delta_pct",
+    "signed_delta_ratio_20",
+    "spread_atr",
+    "spread_vol_20",
+    "quote_ratio_20",
+    "signed_depth_imbalance",
+    "signed_depth_imbalance_change",
+    "signed_depth_imbalance_persist_10",
+    "depth_ratio_20",
+    "signed_book_slope",
+    "minute_sin",
+    "minute_cos",
+    "is_rth",
+    "is_rth_open",
+    "is_rth_close",
+    "signed_nq_ret_1m",
+    "signed_nq_ret_5m",
+    "signed_mnq_nq_div_1m",
+    "signed_nq_delta_pct",
+    "signed_nq_depth_imbalance",
+    "formula_signal"
+  ],
+  "analog_features": [
+    "signed_ret_1m",
+    "signed_ret_5m",
+    "signed_ret_15m",
+    "signed_ret_60m",
+    "rv_15m_atr",
+    "range_1m_atr",
+    "signed_dist_vwap_atr",
+    "volume_ratio_20",
+    "signed_delta_pct",
+    "spread_atr",
+    "signed_depth_imbalance",
+    "signed_depth_imbalance_persist_10",
+    "signed_book_slope",
+    "signed_nq_ret_5m",
+    "signed_mnq_nq_div_1m",
+    "formula_signal"
+  ],
+  "walk_forward_folds": [
+    [
+      "wf_1",
+      "2026-04-01",
+      "2026-04-17",
+      "2026-04-20",
+      "2026-04-24"
+    ],
+    [
+      "wf_2",
+      "2026-04-01",
+      "2026-04-24",
+      "2026-04-27",
+      "2026-05-01"
+    ],
+    [
+      "wf_3",
+      "2026-04-01",
+      "2026-05-01",
+      "2026-05-04",
+      "2026-05-08"
+    ],
+    [
+      "wf_4",
+      "2026-04-01",
+      "2026-05-08",
+      "2026-05-11",
+      "2026-05-15"
+    ]
+  ],
+  "validation": [
+    "2026-05-18",
+    "2026-05-22"
+  ],
+  "final_test": [
+    "2026-05-25",
+    "2026-06-05"
+  ]
+}

@@ -1,0 +1,124 @@
+{
+  "estimated_at": "2026-06-13",
+  "dataset": "GLBX.MDP3",
+  "budget_usd": 100.0,
+  "account_balance_known_via_api": false,
+  "existing_download_manifest_cost_usd": 4.517709795386,
+  "recommended_requests": [
+    "independent_primary_validation_under_100",
+    "price_volume_alternative_screen",
+    "contract_definitions"
+  ],
+  "recommended_total_cost_usd": 99.557965569198,
+  "estimated_budget_remaining_usd": 0.44203443080199634,
+  "download_started": false,
+  "estimates": [
+    {
+      "name": "independent_primary_validation_under_100",
+      "purpose": "Five untouched months of MNQ trades for the frozen delta strategy and non-depth alternatives",
+      "schema": "trades",
+      "symbols": [
+        "MNQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2024-01-01",
+      "end": "2024-06-01",
+      "priority": 1,
+      "cost_usd": 86.516103565693,
+      "billable_bytes": 3317712816,
+      "record_count": 69119017
+    },
+    {
+      "name": "independent_primary_validation_under_120",
+      "purpose": "Six untouched months of MNQ trades for the frozen delta strategy and non-depth alternatives",
+      "schema": "trades",
+      "symbols": [
+        "MNQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2024-01-01",
+      "end": "2024-07-01",
+      "priority": 1,
+      "cost_usd": 102.833773434162,
+      "billable_bytes": 3943461552,
+      "record_count": 82155449
+    },
+    {
+      "name": "price_volume_alternative_screen",
+      "purpose": "MNQ and NQ 1-minute bars for all price/volume-only strategy families",
+      "schema": "ohlcv-1m",
+      "symbols": [
+        "MNQ.FUT",
+        "NQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2023-01-01",
+      "end": "2026-04-01",
+      "priority": 2,
+      "cost_usd": 13.020694479346,
+      "billable_bytes": 199726632,
+      "record_count": 3566547
+    },
+    {
+      "name": "contract_definitions",
+      "purpose": "MNQ and NQ contract metadata and roll mapping for every requested study",
+      "schema": "definition",
+      "symbols": [
+        "MNQ.FUT",
+        "NQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2023-01-01",
+      "end": "2026-04-01",
+      "priority": 2,
+      "cost_usd": 0.021167524159,
+      "billable_bytes": 13369680,
+      "record_count": 37138
+    },
+    {
+      "name": "quote_context",
+      "purpose": "MNQ 1-minute top-of-book context for spread and liquidity regimes",
+      "schema": "bbo-1m",
+      "symbols": [
+        "MNQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2023-01-01",
+      "end": "2026-04-01",
+      "priority": 3,
+      "cost_usd": 5.502838790417,
+      "billable_bytes": 328257120,
+      "record_count": 4103214
+    },
+    {
+      "name": "one_second_quote_sample",
+      "purpose": "One month of one-second top-of-book data for spread and fill research",
+      "schema": "bbo-1s",
+      "symbols": [
+        "MNQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2026-03-01",
+      "end": "2026-04-01",
+      "priority": 4,
+      "cost_usd": 5.598708987236,
+      "billable_bytes": 333976000,
+      "record_count": 4174700
+    },
+    {
+      "name": "trade_linked_execution_sample",
+      "purpose": "One month of trade-linked top-of-book updates for detailed fill research",
+      "schema": "tbbo",
+      "symbols": [
+        "MNQ.FUT"
+      ],
+      "stype_in": "parent",
+      "start": "2026-03-01",
+      "end": "2026-04-01",
+      "priority": 5,
+      "cost_usd": 56.277591884136,
+      "billable_bytes": 2158128720,
+      "record_count": 26976609
+    }
+  ]
+}

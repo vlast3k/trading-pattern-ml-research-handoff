@@ -1,0 +1,1 @@
+row_id,decision_time,entry_time,exit_time,trading_day,session_bucket,direction,outcome,target_before_stop,risk_points,gross_r,net_r,gross_pnl,net_pnl,mfe_r,mae_r,formula_signal,model,score,period,fold,threshold

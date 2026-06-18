@@ -1,0 +1,27 @@
+{
+  "summary": {
+    "trades": 453,
+    "days": 63,
+    "long_trades": 220,
+    "short_trades": 233,
+    "win_rate": 0.3708609271523179,
+    "net_pnl": -679.220191,
+    "profit_factor": 0.8882843163868189,
+    "payoff_ratio": 1.506910893870496,
+    "expectancy": -1.4993823200883003,
+    "max_drawdown": 1173.0600419999996,
+    "worst_day": -325.8800385,
+    "leave_best_day_out_pnl": -937.2801785,
+    "profit_factor_without_largest_winner": 0.8590469953161879,
+    "first_half_pnl": -795.740016,
+    "second_half_pnl": 116.51982500000008
+  },
+  "trading_day_bootstrap": {
+    "repetitions": 10000,
+    "expectancy_95pct_low": -4.5039219816560205,
+    "expectancy_95pct_high": 1.769091157699902,
+    "profit_factor_95pct_low": 0.6936713313247085,
+    "profit_factor_95pct_high": 1.1452571091229797,
+    "probability_positive_expectancy": 0.1819
+  }
+}

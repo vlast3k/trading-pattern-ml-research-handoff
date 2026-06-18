@@ -1,0 +1,37 @@
+{
+  "version": 3,
+  "generated_at": "2026-06-11T10:19:50+03:00",
+  "resolution": "1 second",
+  "instruments": {
+    "ES": {
+      "files": 65,
+      "seconds": 3617089,
+      "nontrivial_days": 49
+    },
+    "GC": {
+      "files": 1,
+      "seconds": 915,
+      "nontrivial_days": 0
+    },
+    "MES": {
+      "files": 64,
+      "seconds": 3700235,
+      "nontrivial_days": 49
+    },
+    "MGC": {
+      "files": 1,
+      "seconds": 808,
+      "nontrivial_days": 0
+    },
+    "MNQ": {
+      "files": 65,
+      "seconds": 3747654,
+      "nontrivial_days": 49
+    },
+    "NQ": {
+      "files": 65,
+      "seconds": 3678820,
+      "nontrivial_days": 49
+    }
+  }
+}

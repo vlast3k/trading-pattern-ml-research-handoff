@@ -1,0 +1,4 @@
+model,best_threshold,best_trades,best_net_pnl,best_max_drawdown,frozen_threshold,frozen_action
+analog,0.60000000,27,-391.53142857,468.02428571,1.10000000,no_trade
+gradient_boosted_trees,0.50000000,30,-33.22142857,201.98285714,1.10000000,no_trade
+logistic,0.50000000,15,-16.59285714,124.36714286,1.10000000,no_trade

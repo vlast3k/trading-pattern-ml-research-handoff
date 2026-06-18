@@ -1,0 +1,19 @@
+.DS_Store
+.env
+.env.*
+*.key
+*.pem
+*.p12
+*.tar
+*.tar.gz
+*.zip
+
+# Large market-data payloads are transferred manually, not committed here.
+data/databento_2025q1_replication/
+data/canonical_databento_mnq_2025q1/*.csv.gz
+data/canonical_orderflow_1s/
+
+# Local scratch/cache files
+.venv/
+__pycache__/
+*.pyc

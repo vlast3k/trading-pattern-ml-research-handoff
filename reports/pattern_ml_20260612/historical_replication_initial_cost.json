@@ -1,0 +1,22 @@
+{
+  "registration_version": 1,
+  "superseded_by_registration_version": 2,
+  "reason_superseded": "Pre-outcome dependency audit showed mbp-10 is unused by the frozen candidate and NQ is an optional portability test.",
+  "estimates": [
+    {
+      "schema": "trades",
+      "symbols": ["MNQ.FUT", "NQ.FUT"],
+      "billable_gigabytes": 45.071208768,
+      "cost_usd": 1175.323357343674
+    },
+    {
+      "schema": "mbp-10",
+      "symbols": ["MNQ.FUT", "NQ.FUT"],
+      "billable_gigabytes": 11530.313076688,
+      "cost_usd": 5369.220430351794
+    }
+  ],
+  "total_billable_gigabytes": 11575.384285456,
+  "total_cost_usd": 6544.5437876954675,
+  "download_started": false
+}

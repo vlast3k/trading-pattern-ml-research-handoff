@@ -1,0 +1,14 @@
+{
+  "registration": "reports/pattern_ml_20260612/historical_replication_registration.json",
+  "estimates": [
+    {
+      "schema": "trades",
+      "billable_bytes": 29559693840,
+      "billable_gigabytes": 29.55969384,
+      "cost_usd": 770.829084813595
+    }
+  ],
+  "total_billable_gigabytes": 29.55969384,
+  "total_cost_usd": 770.829084813595,
+  "download_started": false
+}

@@ -1,0 +1,42 @@
+{
+  "registration_version": 5,
+  "registered_at": "2026-06-13",
+  "amended_at": "2026-06-13",
+  "amendment_reason": "Pre-outcome dependency and cost audit removed unused depth and made NQ optional. A later pre-download amendment removed the Apex-era cost reserve. The user then approved a budget-constrained recent replication using 2025 Q1 MNQ trades rather than the unaffordable full request.",
+  "purpose": "Independent historical replication of the frozen MNQ vwap_delta_rejection candidate; not parameter selection.",
+  "dataset": "GLBX.MDP3",
+  "symbols": ["MNQ.FUT"],
+  "requested_start": "2023-01-01",
+  "requested_end_exclusive": "2026-04-01",
+  "required_schemas": ["trades"],
+  "optional_portability_request": {
+    "symbols": ["NQ.FUT"],
+    "required_schemas": ["trades"],
+    "report_separately": true,
+    "do_not_pool_with_mnq_replication": true
+  },
+  "approved_budget_constrained_replication": {
+    "symbols": ["MNQ.FUT"],
+    "required_schemas": ["trades"],
+    "requested_start": "2025-01-01",
+    "requested_end_exclusive": "2025-04-01",
+    "estimated_cost_usd": 78.513128757477,
+    "analyze_primary_before_alternatives": true
+  },
+  "candidate": {
+    "timeframe_minutes": 1,
+    "variant": "vwap_delta_rejection",
+    "filters": "none",
+    "position_limit": 1,
+    "allow_overlapping_positions": false,
+    "fixed_cost_usd": 2.24
+  },
+  "analysis_policy": {
+    "run_formula_once_without_parameter_changes": true,
+    "report_all_dates_contracts_directions_and_sessions": true,
+    "do_not_select_subperiods": true,
+    "do_not_pool_with_prospective_evidence": true,
+    "failed_replication_must_be_published": true
+  },
+  "status": "budget_constrained_recent_replication_completed_primary_failed"
+}

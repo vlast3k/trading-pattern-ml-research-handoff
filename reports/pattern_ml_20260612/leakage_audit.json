@@ -1,0 +1,50 @@
+{
+  "canonical_version_requirement": "version >= 3, enforced before reading",
+  "feature_timing_violations": 0,
+  "entry_before_decision_violations": 0,
+  "selected_trade_overlap_violations": 0,
+  "analog_future_neighbor_violations": 0,
+  "analog_same_day_neighbor_violations": 0,
+  "split_checks": [
+    {
+      "name": "wf_1",
+      "train_exit_max": "2026-04-17T22:04:00+00:00",
+      "test_decision_min": "2026-04-20T06:00:00+00:00",
+      "purged": true
+    },
+    {
+      "name": "wf_2",
+      "train_exit_max": "2026-04-24T22:24:00+00:00",
+      "test_decision_min": "2026-04-27T07:00:00+00:00",
+      "purged": true
+    },
+    {
+      "name": "wf_3",
+      "train_exit_max": "2026-05-01T22:03:00+00:00",
+      "test_decision_min": "2026-05-04T13:05:00+00:00",
+      "purged": true
+    },
+    {
+      "name": "wf_4",
+      "train_exit_max": "2026-05-08T22:07:00+00:00",
+      "test_decision_min": "2026-05-11T13:35:00+00:00",
+      "purged": true
+    },
+    {
+      "name": "validation",
+      "train_exit_max": "2026-05-15T22:08:00+00:00",
+      "test_decision_min": "2026-05-18T06:00:00+00:00",
+      "purged": true
+    },
+    {
+      "name": "final_test",
+      "train_exit_max": "2026-05-22T16:31:00+00:00",
+      "test_decision_min": "2026-05-25T07:00:00+00:00",
+      "purged": true
+    }
+  ],
+  "scalers_fit_on_training_only": true,
+  "thresholds_selected_from_development_oof_only": true,
+  "final_test_thresholds_frozen": true,
+  "passed": true
+}

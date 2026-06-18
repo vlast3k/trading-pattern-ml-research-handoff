@@ -1,0 +1,15 @@
+{
+  "score": 16.150157188452475,
+  "split_index": 134,
+  "split_time": "2026-05-18T23:21:00+00:00",
+  "split_trading_day": "2026-05-19",
+  "before_trades": 134,
+  "after_trades": 95,
+  "before_net_pnl": -322.819847,
+  "after_net_pnl": 1305.400116,
+  "before_avg_pnl": -2.4091033358208955,
+  "after_avg_pnl": 13.741053852631579,
+  "average_pnl_difference": 16.150157188452475,
+  "permutation_pvalue_multiple_split_adjusted": 0.2273863068465767,
+  "post_hoc_warning": "The split was selected after viewing all outcomes and is diagnostic only."
+}

@@ -1,0 +1,53 @@
+{
+  "plan_version": 2,
+  "planned_at": "2026-06-13",
+  "status": "downloaded_and_primary_evaluated",
+  "budget_ceiling_usd": 95.0,
+  "requests": [
+    {
+      "dataset": "GLBX.MDP3",
+      "schema": "trades",
+      "symbols": ["MNQ.FUT"],
+      "stype_in": "parent",
+      "start": "2025-01-01",
+      "end_exclusive": "2025-04-01",
+      "estimated_cost_usd": 78.513128757477,
+      "estimated_billable_gigabytes": 3.01081536
+    },
+    {
+      "dataset": "GLBX.MDP3",
+      "schema": "ohlcv-1m",
+      "symbols": ["MNQ.FUT", "NQ.FUT"],
+      "stype_in": "parent",
+      "start": "2023-01-01",
+      "end_exclusive": "2026-04-01",
+      "estimated_cost_usd": 13.0207,
+      "estimated_billable_gigabytes": 0.1997
+    },
+    {
+      "dataset": "GLBX.MDP3",
+      "schema": "definition",
+      "symbols": ["MNQ.FUT", "NQ.FUT"],
+      "stype_in": "parent",
+      "start": "2023-01-01",
+      "end_exclusive": "2026-04-01",
+      "estimated_cost_usd": 0.0212,
+      "estimated_billable_gigabytes": 0.0134
+    }
+  ],
+  "estimated_total_cost_usd": 91.55499076098201,
+  "actual_total_cost_usd": 91.55499076098204,
+  "download_path": "data/databento_2025q1_replication",
+  "primary_verdict_path": "reports/mnq_2025q1_primary_replication/VERDICT.md",
+  "analysis_sequence": [
+    "Run and publish the frozen MNQ 1-minute vwap_delta_rejection primary first.",
+    "Seal the primary verdict before inspecting alternative-strategy outcomes.",
+    "Then use the same data as development evidence for non-depth alternatives.",
+    "Any newly selected alternative requires a later untouched holdout."
+  ],
+  "limitations": [
+    "This is a more recent budget-constrained replication, not the full 2023-2026 preregistered replication.",
+    "Depth-dependent strategies cannot be validated from these requests.",
+    "The guarded downloader refuses submission if the current metadata estimate exceeds $95."
+  ]
+}

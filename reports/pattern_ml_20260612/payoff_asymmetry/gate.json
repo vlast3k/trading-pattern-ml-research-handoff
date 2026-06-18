@@ -1,0 +1,21 @@
+{
+  "minimum_payoff_ratio": 1.3,
+  "minimum_profit_factor": 1.2,
+  "minimum_edge_margin": 0.03,
+  "require_positive_expectancy": true,
+  "minimum_profit_factor_without_largest_winner": 1.0,
+  "confidence_gate": {
+    "minimum_trades": 20,
+    "minimum_wins": 5,
+    "minimum_losses": 5,
+    "payoff_ratio_95pct_lower_bound": 1.0,
+    "profit_factor_95pct_lower_bound": 1.0,
+    "expectancy_95pct_lower_bound": 0.0
+  },
+  "slippage_ticks_per_side_reviewed": [
+    0,
+    1,
+    2,
+    4
+  ]
+}
