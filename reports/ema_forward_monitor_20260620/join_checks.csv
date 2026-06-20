@@ -1,0 +1,6 @@
+check,status,count,detail
+raw_key_duplicates,pass,0,root/timeframe/variant/entry_time duplicate keys in raw trades
+context_key_duplicates,pass,0,root/timeframe/variant/entry_time duplicate keys in context trades
+context_to_raw_key_match,pass,0,context rows without raw root/timeframe/variant/entry_time match
+context_trade_id_duplicates,pass,0,duplicate context trade_id values
+required_context_features,pass,0,

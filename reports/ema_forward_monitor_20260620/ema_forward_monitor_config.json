@@ -1,0 +1,62 @@
+{
+  "schema_version": 1,
+  "generated_by": "scripts/run_ema_forward_monitor.py",
+  "github_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/8",
+  "context_trades": "reports/ema_pullback_reconciliation_20260619/local_context_15_30_60/trades_with_context.csv.gz",
+  "raw_trades": "reports/ninja_canonical_ohlcv_eval_20260619_expanded/trades_nonoverlap.csv.gz",
+  "source_manifest": "reports/ninja_canonical_ohlcv_eval_20260619_expanded/manifest.json",
+  "forward_start": "all_available_explicit_context",
+  "forward_end": "open",
+  "cohort_label": "existing_local_baseline_not_newly_appended_forward",
+  "cost_model": {
+    "base_pnl_column": "pnl_dollars",
+    "base_commission_round_turn_dollars": 2.24,
+    "base_slippage_ticks": 0.0,
+    "sensitivity_slippage_ticks_per_side": [
+      0.0,
+      1.0,
+      2.0
+    ],
+    "mnq_point_value": 2.0,
+    "tick_size": 0.25
+  },
+  "cadence": {
+    "primary": "weekly",
+    "rollup": "monthly",
+    "rerun_rule": "rerun only after newly appended local canonical trades are explicitly available; do not retune"
+  },
+  "join_checks": {
+    "join_valid": true,
+    "failed_checks": 0
+  },
+  "monitors": [
+    {
+      "monitor_id": "local_raw_60m_ema_pullback",
+      "description": "Local raw MNQ 60m EMA pullback; tests whether recent local 60m behavior persists.",
+      "root": "MNQ",
+      "timeframe": 60,
+      "variant": "ema_pullback_trend",
+      "filter_description": "No context filter.",
+      "min_trades": 30,
+      "min_weeks": 4,
+      "max_largest_winner_share": 0.4,
+      "max_drawdown_dollars": 1500.0,
+      "min_profit_factor": 1.1,
+      "min_net_without_largest": 0.0
+    },
+    {
+      "monitor_id": "databento_style_15m_ema_month_or_week_down",
+      "description": "Databento-style MNQ 15m EMA pullback when prior month or week trend is down.",
+      "root": "MNQ",
+      "timeframe": 15,
+      "variant": "ema_pullback_trend",
+      "filter_description": "month_trend == 'down' OR week_trend == 'down'.",
+      "min_trades": 30,
+      "min_weeks": 4,
+      "max_largest_winner_share": 0.4,
+      "max_drawdown_dollars": 3500.0,
+      "min_profit_factor": 1.1,
+      "min_net_without_largest": 0.0
+    }
+  ]
+}
