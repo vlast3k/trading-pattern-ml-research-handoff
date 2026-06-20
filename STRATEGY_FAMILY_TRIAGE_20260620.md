@@ -72,12 +72,29 @@ Open a focused validation issue for:
 - Selector: frozen `confluence_score >= 6`
 - Trade size: one MNQ contract
 - Data: data not used to define or choose the candidate, preferably newly appended local canonical OHLCV after the existing June research window.
+- Data location: all validation inputs must live under documented repo-relative ignored paths, for example `data/local_canonical/...` or `data/databento/...`. Scripts/configs may use documented environment variables, but they must not depend on ad hoc absolute local paths.
 - Minimum observation target: at least 4 calendar weeks and at least 30 trades before judging; if fewer than 30 trades after 6 weeks, report as under-sampled rather than pass/fail.
+
+### Data Reproducibility Gate
+
+The next Donchian validation is **incomplete** unless it emits a `source_lineage.md` or equivalent manifest containing every input path as repo-relative metadata:
+
+- repo-relative input path
+- whether the input is committed or intentionally ignored
+- `.gitignore` coverage confirmation for large/proprietary uncommitted data
+- file size
+- row count where applicable
+- first and last timestamp where applicable
+- SHA-256 or equivalent checksum when practical
+- documented copy, symlink, or import step if the source originated outside the repo tree
+
+Validation should fail or be marked incomplete if required data remains outside the repo checkout with no documented repo-relative import/symlink/copy step.
 
 ### Validation Gates
 
 Pass only if all hold:
 
+- The data reproducibility gate above passes.
 - Net profit after stated commissions and fees is positive.
 - PF is at least 1.10 at baseline cost and at least 1.05 under 2 ticks per side slippage.
 - Max drawdown is no worse than $2,500 for one MNQ contract.
@@ -94,17 +111,20 @@ Reject or demote if any hold:
 - Max drawdown > $2,500 before enough positive expectancy is observed.
 - Largest-winner share >= 50% or net excluding largest winner <= 0.
 - Forward trades materially disagree with the frozen formula or selector definition.
+- Required data inputs are outside repo-relative documented `data/...` paths, or no lineage/checksum manifest is produced.
 
 ### Next Worker Task
 
 Build a frozen forward monitor for `mnq_60_donchian_confluence_ge6`, mirroring the Issue #8 EMA monitor discipline:
 
 1. Freeze the candidate definition in a small config/report artifact.
-2. Join only the required local canonical OHLCV/new-period inputs.
-3. Emit trade-level CSV plus summary metrics.
-4. Emit join/timeframe/session checks.
-5. Write a verdict without retuning.
-6. Keep the status at `primary_validation_candidate` unless the gates above are actually met on forward data.
+2. Place or reference all required uncommitted large inputs under repo-relative ignored `data/...` paths.
+3. Emit `source_lineage.md` with input paths, file sizes, row counts, timestamp spans, checksums where practical, and ignore/import status.
+4. Join only the required local canonical OHLCV/new-period inputs.
+5. Emit trade-level CSV plus summary metrics.
+6. Emit join/timeframe/session checks.
+7. Write a verdict without retuning.
+8. Keep the status at `primary_validation_candidate` unless the gates above are actually met on forward data.
 
 ## Acceptance Criteria
 
@@ -112,4 +132,5 @@ Build a frozen forward monitor for `mnq_60_donchian_confluence_ge6`, mirroring t
 - PASS: Each family has a conservative status.
 - PASS: Exactly one primary recommendation is made.
 - PASS: The recommendation includes candidate ID, cohort, metric gates, failure conditions, and next worker task.
+- PASS: The next validation task now includes a repo-relative data-location and source-lineage reproducibility gate.
 - RISK: This triage depends partly on local parallel-research artifacts outside this handoff repository; the key numbers are copied here so the decision remains reviewable.
