@@ -1,0 +1,19 @@
+{
+  "generated_by": "scripts/run_strategy_family_triage.py",
+  "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/9",
+  "decision": "keep all families diagnostic and collect specific forward data",
+  "decision_rationale": "Some evidence is positive, but no family clears validation-level gates.",
+  "candidate_rows": 968,
+  "family_rows": 4,
+  "family_status_caps": {
+    "ema_pullback": "diagnostic_only"
+  },
+  "required_promotion_metrics": [
+    "net_dollars",
+    "profit_factor",
+    "max_drawdown_dollars",
+    "trades",
+    "largest_winner_share",
+    "net_without_largest"
+  ]
+}

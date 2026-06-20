@@ -12,6 +12,7 @@ Flag only P0/P1 issues:
 
 - Python syntax errors, import errors, obvious runtime errors, or broken CLI argument handling.
 - Changed scripts that cannot run because of missing files, wrong paths, wrong output directories, or wrong assumptions about existing report layout.
+- Validation scripts or reports that require absolute local data paths such as `C:\Users\...` without documenting a repo-relative ignored `data/...` path or an import, copy, or symlink step.
 - Obvious pandas/data bugs: wrong column names, empty-frame crashes, timezone mistakes, invalid groupby/sort logic, bad NaN handling, or type conversions that will fail.
 - Changes that accidentally run broad parameter searches when the issue asks for audit/reconciliation/frozen-monitor work.
 - Changes that alter research conclusions without evidence.
@@ -21,7 +22,7 @@ Flag only P0/P1 issues:
 
 ## What not to flag
 
-Do not block on style, wording, formatting, local path cosmetics in local-only notes, or report-polish issues unless they prevent execution or materially mislead the strategy decision.
+Do not block on style, wording, formatting, local path cosmetics in local-only notes, or report-polish issues unless they prevent execution, require hidden local data layout, or materially mislead the strategy decision.
 
 Do not ask for new experiments unless the changed code/report cannot answer its stated issue.
 

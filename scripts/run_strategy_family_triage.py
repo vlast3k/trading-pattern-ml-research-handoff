@@ -83,6 +83,13 @@ def load_config(path: Path) -> dict[str, Any]:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def repo_rel(path: Path) -> str:
+    try:
+        return path.resolve().relative_to(Path.cwd().resolve()).as_posix()
+    except ValueError:
+        return path.as_posix()
+
+
 def discover_csvs(config: dict[str, Any], max_csv_mb: float, include_large: bool) -> list[Path]:
     found: dict[str, Path] = {}
     skips = [s.lower() for s in config.get("skip_path_patterns", [])]
@@ -131,14 +138,15 @@ def read_candidate_rows(path: Path, config: dict[str, Any]) -> tuple[list[dict[s
         status_col = mapped.get("status")
         timeframe_col = mapped.get("timeframe")
         variant = str(row.get(variant_col, path.stem)).strip() if variant_col else path.stem
-        label = " ".join([path.as_posix(), variant, str(row.get(status_col, "")), str(row.get(timeframe_col, ""))])
+        source_file = repo_rel(path)
+        label = " ".join([source_file, variant, str(row.get(status_col, "")), str(row.get(timeframe_col, ""))])
         family = infer_family(label, config["family_patterns"])
         rows.append({
-            "source_file": path.as_posix(),
+            "source_file": source_file,
             "source_row": int(idx),
             "family": family,
             "variant": variant,
-            "candidate_id": f"{family}:{variant}:{path.as_posix()}:{idx}",
+            "candidate_id": f"{family}:{variant}:{source_file}:{idx}",
             "status_raw": str(row.get(status_col, "")).strip() if status_col else "",
             "net_dollars": as_float(row.get(mapped.get("net_dollars"))) if mapped.get("net_dollars") else None,
             "profit_factor": as_float(row.get(mapped.get("profit_factor"))) if mapped.get("profit_factor") else None,
@@ -337,7 +345,7 @@ def main() -> int:
         new_rows, reason = read_candidate_rows(csv_path, config)
         rows.extend(new_rows)
         if reason:
-            skipped.append({"source_file": csv_path.as_posix(), "reason": reason})
+            skipped.append({"source_file": repo_rel(csv_path), "reason": reason})
 
     candidates = pd.DataFrame(rows)
     if not candidates.empty:

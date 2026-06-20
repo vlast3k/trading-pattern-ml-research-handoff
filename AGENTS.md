@@ -28,6 +28,7 @@ Unless the active GitHub issue explicitly requests it:
 - Do not search new variants when the task is an audit, reconciliation, or forward-monitor task.
 - Do not download more data unless the issue asks for a specific period and reason.
 - Do not close or upgrade a candidate status without writing the evidence and unresolved risks.
+- Large/raw validation data may remain uncommitted and ignored, but validation scripts and reports must reference repo-relative paths under `data/...` or another documented repo-relative ignored path. Absolute local paths such as `C:\Users\...` must not be required unless the report or config documents the import, copy, or symlink step.
 
 ## Active task source of truth
 
@@ -100,6 +101,7 @@ Flag serious issues such as:
 
 - Python syntax errors, import errors, broken CLI arguments, or scripts that cannot run.
 - Wrong input/output paths that break repeatable worker execution.
+- Validation scripts or reports that require absolute local data paths without a documented repo-relative import, copy, or symlink step.
 - Obvious pandas/dataframe mistakes, missing required columns, empty-frame crashes, timezone mistakes, or invalid metric calculations.
 - Accidental parameter tuning, broad discovery, platform implementation, broker integration, or paper/live trading work outside the active issue scope.
 - Report logic that hides weak evidence by omitting sample size, drawdown, largest-winner dependence, cost/slippage, or final status.

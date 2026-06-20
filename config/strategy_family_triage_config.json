@@ -10,7 +10,8 @@
     "minute_bars",
     "bars_",
     "ohlcv_1m",
-    "join_checks"
+    "join_checks",
+    "strategy_family_triage_"
   ],
   "family_patterns": {
     "donchian_range_breakout": ["donchian", "range_breakout", "range breakout", "breakout"],
