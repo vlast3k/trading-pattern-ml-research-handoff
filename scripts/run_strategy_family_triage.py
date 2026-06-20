@@ -4,7 +4,11 @@
 This first-pass runner scans existing report CSVs, normalizes common trading
 metrics, infers broad family buckets, and writes candidate/family ranking
 artifacts. It is not an optimizer and does not search new strategy parameters.
-The worker should fix config mappings if local reports use different columns.
+
+Important product guardrails:
+- Known disqualified/capped families can be capped in config.
+- Rows missing required promotion metrics cannot be promoted above diagnostic.
+- The final Issue #9 decision is still a product conclusion, not just a score.
 """
 
 from __future__ import annotations
@@ -18,6 +22,14 @@ from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+
+STATUS_RANK = {
+    "reject": 0,
+    "diagnostic_only": 1,
+    "research_monitor": 2,
+    "primary_validation_candidate": 3,
+}
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,6 +60,8 @@ def as_float(value: Any) -> float | None:
         return None
     if isinstance(value, str):
         value = value.replace("$", "").replace(",", "").replace("%", "").strip()
+        if not value:
+            return None
     try:
         out = float(value)
     except (TypeError, ValueError):
@@ -58,6 +72,11 @@ def as_float(value: Any) -> float | None:
 def money(value: Any) -> str:
     number = as_float(value)
     return "n/a" if number is None else f"${number:,.0f}"
+
+
+def fmt_number(value: Any, digits: int = 2) -> str:
+    number = as_float(value)
+    return "n/a" if number is None else f"{number:.{digits}f}"
 
 
 def load_config(path: Path) -> dict[str, Any]:
@@ -131,7 +150,13 @@ def read_candidate_rows(path: Path, config: dict[str, Any]) -> tuple[list[dict[s
     return rows, None
 
 
-def score(row: pd.Series, thresholds: dict[str, Any]) -> tuple[float, str, str]:
+def status_at_most(status: str, cap: str) -> str:
+    if STATUS_RANK.get(status, 0) > STATUS_RANK.get(cap, 0):
+        return cap
+    return status
+
+
+def initial_score(row: pd.Series, thresholds: dict[str, Any]) -> tuple[float, str, list[str]]:
     score_value = 0.0
     reasons: list[str] = []
 
@@ -148,25 +173,34 @@ def score(row: pd.Series, thresholds: dict[str, Any]) -> tuple[float, str, str]:
         reasons.append("positive_net" if net > 0 else "non_positive_net")
     if pd.notna(pf):
         if pf >= thresholds["min_profit_factor_primary_validation"]:
-            score_value += 25; reasons.append("pf_primary_level")
+            score_value += 25
+            reasons.append("pf_primary_level")
         elif pf >= thresholds["min_profit_factor_research_monitor"]:
-            score_value += 12; reasons.append("pf_monitor_level")
+            score_value += 12
+            reasons.append("pf_monitor_level")
         else:
-            score_value -= 15; reasons.append("weak_pf")
+            score_value -= 15
+            reasons.append("weak_pf")
     if pd.notna(trades):
         if trades >= thresholds["min_trades_primary_validation"]:
-            score_value += 20; reasons.append("sample_primary_level")
+            score_value += 20
+            reasons.append("sample_primary_level")
         elif trades >= thresholds["min_trades_research_monitor"]:
-            score_value += 10; reasons.append("sample_monitor_level")
+            score_value += 10
+            reasons.append("sample_monitor_level")
         else:
-            score_value -= 12; reasons.append("thin_sample")
+            score_value -= 12
+            reasons.append("thin_sample")
     if pd.notna(dd):
         if dd <= thresholds["preferred_max_drawdown_one_contract_mnq"]:
-            score_value += 15; reasons.append("preferred_drawdown")
+            score_value += 15
+            reasons.append("preferred_drawdown")
         elif dd <= thresholds["max_drawdown_one_contract_mnq"]:
-            score_value += 5; reasons.append("acceptable_drawdown")
+            score_value += 5
+            reasons.append("acceptable_drawdown")
         else:
-            score_value -= 18; reasons.append("drawdown_too_high")
+            score_value -= 18
+            reasons.append("drawdown_too_high")
     if pd.notna(net_ex):
         score_value += 20 if net_ex > thresholds["min_net_without_largest"] else -25
         reasons.append("positive_ex_largest" if net_ex > thresholds["min_net_without_largest"] else "largest_winner_dependency")
@@ -174,9 +208,11 @@ def score(row: pd.Series, thresholds: dict[str, Any]) -> tuple[float, str, str]:
         score_value += 10 if largest <= thresholds["max_largest_winner_share"] else -15
         reasons.append("largest_share_ok" if largest <= thresholds["max_largest_winner_share"] else "largest_share_high")
     if "pass" in raw_status or "primary" in raw_status:
-        score_value += 8; reasons.append("source_status_positive")
+        score_value += 8
+        reasons.append("source_status_positive")
     if "fail" in raw_status or "reject" in raw_status:
-        score_value -= 8; reasons.append("source_status_negative")
+        score_value -= 8
+        reasons.append("source_status_negative")
 
     status = "diagnostic_only"
     if score_value >= 70:
@@ -185,7 +221,37 @@ def score(row: pd.Series, thresholds: dict[str, Any]) -> tuple[float, str, str]:
         status = "research_monitor"
     elif score_value < 0:
         status = "reject"
-    return score_value, status, ",".join(reasons)
+    return score_value, status, reasons
+
+
+def score(row: pd.Series, config: dict[str, Any]) -> tuple[float, str, str, str, str]:
+    thresholds = config["thresholds"]
+    score_value, status, reasons = initial_score(row, thresholds)
+
+    required_metrics = config.get("required_promotion_metrics", [])
+    missing_required = [
+        metric for metric in required_metrics
+        if metric not in row or pd.isna(row.get(metric))
+    ]
+
+    cap_reasons: list[str] = []
+    if STATUS_RANK[status] >= STATUS_RANK["research_monitor"] and missing_required:
+        old_status = status
+        status = status_at_most(status, "diagnostic_only")
+        cap_reasons.append(f"missing_required_for_promotion:{','.join(missing_required)}")
+        reasons.append(f"capped_from_{old_status}_missing_required")
+
+    family_caps = config.get("family_status_caps", {})
+    family = str(row.get("family") or "")
+    family_cap = family_caps.get(family)
+    if family_cap:
+        old_status = status
+        status = status_at_most(status, family_cap)
+        if old_status != status:
+            cap_reasons.append(f"family_status_cap:{family}<={family_cap}")
+            reasons.append(f"capped_from_{old_status}_family_cap")
+
+    return score_value, status, ",".join(reasons), ",".join(missing_required), ",".join(cap_reasons)
 
 
 def rank_families(candidates: pd.DataFrame) -> pd.DataFrame:
@@ -193,11 +259,12 @@ def rank_families(candidates: pd.DataFrame) -> pd.DataFrame:
     if candidates.empty:
         return pd.DataFrame(rows)
     for family, group in candidates.groupby("family", sort=False):
-        best = group.sort_values("triage_score", ascending=False).iloc[0]
+        best = group.sort_values(["suggested_status_rank", "triage_score"], ascending=[False, False]).iloc[0]
         rows.append({
             "family": family,
             "family_score": float(best["triage_score"]),
             "family_status": best["suggested_status"],
+            "family_status_rank": int(best["suggested_status_rank"]),
             "best_candidate_id": best["candidate_id"],
             "best_variant": best["variant"],
             "best_source_file": best["source_file"],
@@ -207,9 +274,11 @@ def rank_families(candidates: pd.DataFrame) -> pd.DataFrame:
             "best_max_drawdown_dollars": best.get("max_drawdown_dollars"),
             "best_largest_winner_share": best.get("largest_winner_share"),
             "best_net_without_largest": best.get("net_without_largest"),
+            "missing_required_metrics": best.get("missing_required_metrics", ""),
+            "status_cap_reasons": best.get("status_cap_reasons", ""),
             "candidate_rows_seen": int(len(group)),
         })
-    return pd.DataFrame(rows).sort_values("family_score", ascending=False)
+    return pd.DataFrame(rows).sort_values(["family_status_rank", "family_score"], ascending=[False, False])
 
 
 def choose_decision(families: pd.DataFrame) -> tuple[str, str]:
@@ -241,10 +310,11 @@ def write_markdown(path: Path, families: pd.DataFrame, candidates: pd.DataFrame,
     if families.empty:
         lines.append("No usable family rows were found. Update config mappings or source reports.")
     else:
-        lines.append("| Rank | Family | Status | Score | Best variant | Net | PF | Trades | Max DD | Net ex-largest | Source |")
-        lines.append("|---:|---|---|---:|---|---:|---:|---:|---:|---:|---|")
+        lines.append("| Rank | Family | Status | Score | Best variant | Net | PF | Trades | Max DD | Net ex-largest | Caps / missing evidence | Source |")
+        lines.append("|---:|---|---|---:|---|---:|---:|---:|---:|---:|---|---|")
         for idx, row in enumerate(families.itertuples(index=False), start=1):
-            lines.append(f"| {idx} | `{row.family}` | `{row.family_status}` | {row.family_score:.1f} | `{row.best_variant}` | {money(row.best_net_dollars)} | {row.best_profit_factor if pd.notna(row.best_profit_factor) else 'n/a'} | {row.best_trades if pd.notna(row.best_trades) else 'n/a'} | {money(row.best_max_drawdown_dollars)} | {money(row.best_net_without_largest)} | `{row.best_source_file}` |")
+            cap_text = row.status_cap_reasons or row.missing_required_metrics or ""
+            lines.append(f"| {idx} | `{row.family}` | `{row.family_status}` | {row.family_score:.1f} | `{row.best_variant}` | {money(row.best_net_dollars)} | {fmt_number(row.best_profit_factor)} | {fmt_number(row.best_trades, 0)} | {money(row.best_max_drawdown_dollars)} | {money(row.best_net_without_largest)} | `{cap_text}` | `{row.best_source_file}` |")
     lines.extend(["", "## Worker notes", "", "- If a known overfit or wrong-cohort row ranks first, override the scaffold in the final product conclusion.", "- Final Issue #9 recommendation must be exactly one of the three choices in the issue body."])
     if not skipped.empty:
         lines.extend(["", "## Skipped CSV files", "", "| File | Reason |", "|---|---|"])
@@ -271,11 +341,18 @@ def main() -> int:
 
     candidates = pd.DataFrame(rows)
     if not candidates.empty:
-        scored = candidates.apply(lambda row: score(row, config["thresholds"]), axis=1)
+        scored = candidates.apply(lambda row: score(row, config), axis=1)
         candidates["triage_score"] = [item[0] for item in scored]
         candidates["suggested_status"] = [item[1] for item in scored]
         candidates["score_reasons"] = [item[2] for item in scored]
-        candidates = candidates.sort_values(["triage_score", "net_dollars"], ascending=[False, False], na_position="last")
+        candidates["missing_required_metrics"] = [item[3] for item in scored]
+        candidates["status_cap_reasons"] = [item[4] for item in scored]
+        candidates["suggested_status_rank"] = candidates["suggested_status"].map(STATUS_RANK).fillna(0)
+        candidates = candidates.sort_values(
+            ["suggested_status_rank", "triage_score", "net_dollars"],
+            ascending=[False, False, False],
+            na_position="last",
+        )
 
     families = rank_families(candidates)
     skipped_df = pd.DataFrame(skipped)
@@ -291,6 +368,8 @@ def main() -> int:
         "decision_rationale": decision[1],
         "candidate_rows": int(len(candidates)),
         "family_rows": int(len(families)),
+        "family_status_caps": config.get("family_status_caps", {}),
+        "required_promotion_metrics": config.get("required_promotion_metrics", []),
     }, indent=2) + "\n", encoding="utf-8")
     report = Path(f"STRATEGY_FAMILY_TRIAGE_{args.date}.md")
     write_markdown(report, families, candidates, skipped_df, decision)
