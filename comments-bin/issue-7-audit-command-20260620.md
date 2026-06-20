@@ -52,3 +52,14 @@ Return:
 ## Expected posture
 
 Be conservative. The audit should prefer `diagnostic_only` unless the report evidence clearly supports a stronger classification. No candidate should be promoted by this audit alone.
+
+## Original full-intent notes
+
+The orchestrator should understand this as an instruction to audit, not to act on markets or automate execution. It should explicitly avoid:
+
+- NinjaTrader strategy implementation
+- IBKR integration or order-related work
+- paper/live trading decisions
+- strategy rescue work through further parameter search
+
+The intended result is an evidence-quality assessment and a recommendation about issue state only.
