@@ -91,20 +91,3 @@ At the end of each run, report:
 - recommended next action
 
 Use explicit `PASS`, `PARTIAL`, `FAIL`, or `RISK` labels for important findings.
-
-## Review guidelines
-
-When reviewing pull requests, focus on obvious P0/P1 implementation blockers that would prevent the local worker or CI from running correctly, or that would materially distort a trading-research conclusion.
-
-Flag serious issues such as:
-
-- Python syntax errors, import errors, broken CLI arguments, or scripts that cannot run.
-- Wrong input/output paths that break repeatable worker execution.
-- Obvious pandas/dataframe mistakes, missing required columns, empty-frame crashes, timezone mistakes, or invalid metric calculations.
-- Accidental parameter tuning, broad discovery, platform implementation, broker integration, or paper/live trading work outside the active issue scope.
-- Report logic that hides weak evidence by omitting sample size, drawdown, largest-winner dependence, cost/slippage, or final status.
-- Secrets, API keys, account identifiers, or changes that would expose private data.
-
-Do not block pull requests for style, wording, formatting, or artifact-polish issues unless they prevent execution or materially mislead the trading decision.
-
-A useful review result is either `PASS: no obvious P0/P1 implementation blockers found.` or a short `BLOCKERS:` list with file paths, concrete failure modes, and minimal fixes.
