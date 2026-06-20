@@ -1,0 +1,4 @@
+scope,scope_value,slippage_ticks_per_side,commission_round_turn_dollars,cost_dollars_per_trade,trades,days,weeks,net_dollars,profit_factor,max_drawdown_dollars,largest_winner,largest_winner_share,net_without_largest,best_day_share,best_week_share,candidate_id
+full,all,0.0,2.24,2.24,0,0,0,0.0,0.0,0.0,0.0,,0.0,,,mnq_60_donchian_confluence_ge6
+full,all,1.0,2.24,3.24,0,0,0,0.0,0.0,0.0,0.0,,0.0,,,mnq_60_donchian_confluence_ge6
+full,all,2.0,2.24,4.24,0,0,0,0.0,0.0,0.0,0.0,,0.0,,,mnq_60_donchian_confluence_ge6
