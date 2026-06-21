@@ -195,7 +195,6 @@ def distribution(d: pd.DataFrame) -> pd.DataFrame:
 
 def state_quality_summary(d: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
-    b = behavior(d, "state")
     for root, part in d[d["state"] != "unclassified"].groupby("root"):
         med = part.groupby("state")["tr"].median().to_dict()
         rows.append({
