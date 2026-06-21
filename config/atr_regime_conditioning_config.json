@@ -1,0 +1,73 @@
+{
+  "issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/19",
+  "roots": ["MNQ", "NQ"],
+  "default_root": "MNQ",
+  "session_timezone": "America/New_York",
+  "tick_size": 0.25,
+  "dollars_per_point": 2.0,
+  "commission_round_turn": 0.0,
+  "data_sources": {
+    "databento_ohlcv_1m": "../trading/data/databento_ohlcv_1m/front_1m.parquet",
+    "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
+  },
+  "column_aliases": {
+    "timestamp": ["timestamp", "ts", "time", "datetime", "bar_time", "event_time"],
+    "root": ["root", "instrument_root", "symbol_root"],
+    "symbol": ["symbol", "instrument", "contract"],
+    "open": ["open", "o"],
+    "high": ["high", "h"],
+    "low": ["low", "l"],
+    "close": ["close", "c"],
+    "volume": ["volume", "v", "total_volume"]
+  },
+  "state_definition": {
+    "proxy": "prior_day_tr_div_atr20",
+    "atr_window_days": 20,
+    "compression_threshold": 0.8,
+    "expansion_threshold": 1.2,
+    "diagnostic_bins": ["lt_0_7", "0_7_to_0_9", "0_9_to_1_1", "1_1_to_1_3", "gt_1_3"],
+    "do_not_tune_thresholds_inside_issue": true
+  },
+  "phase1_gates": {
+    "min_days_per_primary_state": 30,
+    "min_days_per_state_per_year": 5,
+    "min_years_with_primary_states": 2,
+    "require_expansion_median_range_above_compression": true
+  },
+  "signals": {
+    "rsi_reversion_30m": {
+      "enabled": false,
+      "availability_status": "not_available_for_frozen_test_until_exact_definition_recovered",
+      "timeframe": "30min",
+      "period": 14,
+      "lower_threshold": 30,
+      "upper_threshold": 70,
+      "hold_bars": 2,
+      "notes": "Disabled by default because the exact frozen RSI definition must be recovered without inference before use."
+    },
+    "donchian_simple_60m": {
+      "enabled": true,
+      "availability_status": "diagnostic_ab_variant_not_failed_confluence_candidate",
+      "timeframe": "60min",
+      "lookback_bars": 20,
+      "hold_bars": 3,
+      "notes": "Simple 60m Donchian diagnostic A/B without confluence_score. This is not mnq_60_donchian_confluence_ge6."
+    }
+  },
+  "signal_slippage_ticks": {
+    "rsi_reversion_30m_frozen_if_configured": [1.0],
+    "donchian_simple_60m_diagnostic": [1.0, 2.0]
+  },
+  "phase2_gates": {
+    "min_net_dollars": 0.0,
+    "min_profit_factor": 1.15,
+    "max_concentration_share": 0.5,
+    "min_net_without_largest": 0.0
+  },
+  "forbidden_verdicts": [
+    "pass_forward_validation",
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate"
+  ]
+}
