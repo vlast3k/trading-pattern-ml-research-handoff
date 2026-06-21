@@ -3,6 +3,7 @@
   "roots": ["MNQ", "NQ"],
   "default_root": "MNQ",
   "session_timezone": "America/New_York",
+  "session_convention": "calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results",
   "tick_size": 0.25,
   "dollars_per_point": 2.0,
   "commission_round_turn": 0.0,
@@ -11,9 +12,9 @@
     "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
   },
   "column_aliases": {
-    "timestamp": ["timestamp", "ts", "time", "datetime", "bar_time", "event_time"],
+    "timestamp": ["timestamp", "ts", "time", "datetime", "bar_time", "event_time", "ts_event"],
     "root": ["root", "instrument_root", "symbol_root"],
-    "symbol": ["symbol", "instrument", "contract"],
+    "symbol": ["symbol", "instrument", "contract", "raw_symbol"],
     "open": ["open", "o"],
     "high": ["high", "h"],
     "low": ["low", "l"],
@@ -43,7 +44,7 @@
       "lower_threshold": 30,
       "upper_threshold": 70,
       "hold_bars": 2,
-      "notes": "Disabled by default because the exact frozen RSI definition must be recovered without inference before use."
+      "notes": "Disabled by default because the exact frozen RSI definition must be recovered without inference before use. These values are placeholders and must not be treated as the frozen definition."
     },
     "donchian_simple_60m": {
       "enabled": true,
@@ -51,7 +52,7 @@
       "timeframe": "60min",
       "lookback_bars": 20,
       "hold_bars": 3,
-      "notes": "Simple 60m Donchian diagnostic A/B without confluence_score. This is not mnq_60_donchian_confluence_ge6."
+      "notes": "Simple 60m Donchian diagnostic A/B without confluence_score. This is not mnq_60_donchian_confluence_ge6. Phase 2 is not implemented in the initial scaffold."
     }
   },
   "signal_slippage_ticks": {
