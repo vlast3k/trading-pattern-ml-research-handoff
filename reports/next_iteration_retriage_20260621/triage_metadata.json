@@ -1,0 +1,39 @@
+{
+  "schema_version": 1,
+  "generated_date": "2026-06-21",
+  "github_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/13",
+  "primary_recommendation": "collect_specific_data_first",
+  "active_primary_validation_candidate": null,
+  "recommended_package_root": "data/local_canonical/post_selection_forward_20260609_plus/",
+  "required_first_step": "rebuild_or_import_fresh_post_selection_canonical_ohlcv_or_orderflow_source",
+  "stale_source_do_not_use_as_forward_without_rebuild": "../trading/data/ninja_canonical_ohlcv_1m/",
+  "stale_source_recorded_end": "2026-06-08T09:57:00+00:00",
+  "minimum_forward_start": "2026-06-09",
+  "minimum_calendar_weeks": 4,
+  "preferred_min_trades_per_candidate": 30,
+  "family_statuses": {
+    "donchian_range_breakout": "diagnostic_only",
+    "ema_pullback": "diagnostic_only",
+    "rsi_reversion": "diagnostic_only",
+    "prior_day_orb_vwap_levels": "diagnostic_only",
+    "bollinger_volatility_expansion": "diagnostic_only",
+    "macd_momentum": "diagnostic_only",
+    "raw_sfp_orderflow_reversal": "reject"
+  },
+  "scope_guards": {
+    "donchian_retuning": false,
+    "broad_parameter_discovery": false,
+    "ninjatrader_order_execution": false,
+    "broker_integration": false,
+    "paper_live_approval": false
+  },
+  "outputs": [
+    "NEXT_ITERATION_RETRIAGE_20260621.md",
+    "reports/next_iteration_retriage_20260621/VERDICT.md",
+    "reports/next_iteration_retriage_20260621/family_status_after_donchian.csv",
+    "reports/next_iteration_retriage_20260621/candidate_evidence_matrix.csv",
+    "reports/next_iteration_retriage_20260621/data_gap_matrix.csv",
+    "reports/next_iteration_retriage_20260621/source_lineage.md",
+    "reports/next_iteration_retriage_20260621/triage_metadata.json"
+  ]
+}
