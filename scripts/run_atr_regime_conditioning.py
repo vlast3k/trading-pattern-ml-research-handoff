@@ -279,7 +279,7 @@ def write_verdict(out: Path, cfg: dict[str, Any], ok: bool, reasons: list[str], 
     if not ok:
         verdict = "regime_proxy_rejected"
     else:
-        verdict = "regime_proxy_useful_but_no_signal_edge"
+        verdict = "incomplete_reproducibility"
     text = [
         "# ATR Regime Conditioning Verdict",
         "",
@@ -303,6 +303,10 @@ def write_verdict(out: Path, cfg: dict[str, Any], ok: bool, reasons: list[str], 
         f"Requested: {phase2_requested}",
         "Ran: false",
         f"Skip reason: `{PHASE2_SKIP_REASON}`",
+        "",
+        "Interpretation:",
+        "- If Phase 1 passes, this scaffold still reports `incomplete_reproducibility` because signal definitions and Phase 2 controls have not been executed.",
+        "- A worker must extend or run Phase 2 in a later commit before claiming signal-edge results.",
         "",
         "Guardrails:",
         "- Forbidden verdicts: pass_forward_validation, paper_ready, live_ready, primary_validation_candidate.",
