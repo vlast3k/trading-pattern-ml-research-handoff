@@ -2,6 +2,8 @@
   "schema_version": 1,
   "generated_by": "scripts/run_donchian_forward_validation.py",
   "github_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/11",
+  "analysis_mode": "available_data_audit",
+  "selection_method": "selector_id_join",
   "candidate": {
     "candidate_id": "mnq_60_donchian_confluence_ge6",
     "family": "donchian_breakout",
@@ -31,8 +33,11 @@
     "trades": 30,
     "weeks": 4
   },
-  "verdict": "incomplete_data_lineage",
+  "verdict": "fail_demote_to_diagnostic_only",
   "verdict_reasons": [
-    "No eligible forward trades-with-context input exists under the repo-relative data package."
+    "True forward trades-with-context file is absent; running available-data audit against frozen registry reference evidence.",
+    "Largest winner explains at least 50% of net profit.",
+    "Best day explains at least 50% of net profit.",
+    "Best week explains at least 50% of net profit."
   ]
 }

@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Run frozen Donchian forward/local validation for issue #11.
 
-The runner is intentionally lineage-first. It will not treat the prior frozen
-registry reference cohort as forward validation data. A valid forward run needs
-an explicit repo-relative forward input under the data package.
+The runner is intentionally lineage-first. If a true post-selection forward
+cohort exists, it runs forward validation. Otherwise it audits the available
+local frozen-registry evidence and labels it as such.
 """
 
 from __future__ import annotations
@@ -171,7 +171,7 @@ def profit_factor(pnl: pd.Series) -> float:
 def max_drawdown(pnl: pd.Series) -> float:
     if pnl.empty:
         return 0.0
-    equity = pnl.astype(float).cumsum()
+    equity = pd.concat([pd.Series([0.0]), pnl.astype(float).cumsum()], ignore_index=True)
     return float((equity.cummax() - equity).max())
 
 
@@ -193,7 +193,7 @@ def add_calendar(frame: pd.DataFrame) -> pd.DataFrame:
     out["entry_time"] = pd.to_datetime(out["entry_time"], utc=True, errors="coerce")
     local = out["entry_time"].dt.tz_convert("America/New_York")
     out["forward_date"] = local.dt.date.astype(str)
-    out["forward_week"] = local.dt.to_period("W-SUN").astype(str)
+    out["forward_week"] = local.dt.tz_localize(None).dt.to_period("W-SUN").astype(str)
     return out
 
 
@@ -211,10 +211,50 @@ def select_candidate(trades: pd.DataFrame, candidate: Candidate) -> pd.DataFrame
     return add_calendar(trades[mask].copy()).sort_values("entry_time")
 
 
+def select_available_audit_candidate(data_root: Path, candidate: Candidate, checks: list[dict[str, str]], reasons: list[str]) -> tuple[pd.DataFrame, str]:
+    reference_trades = data_root / "frozen_registry_reference" / "trades_with_context.csv.gz"
+    selected_trade_ids = data_root / "frozen_registry_reference" / "selected_trade_ids.csv.gz"
+    if reference_trades.exists() and selected_trade_ids.exists():
+        trades = pd.read_csv(reference_trades)
+        selector_ids = pd.read_csv(selected_trade_ids)
+        selector_rows = selector_ids[selector_ids["selector_id"] == candidate.candidate_id].copy()
+        if not selector_rows.empty and "trade_id" in trades.columns:
+            selected = selector_rows.merge(trades, on="trade_id", how="left", indicator=True)
+            missing = int((selected["_merge"] != "both").sum())
+            if missing == 0:
+                selected = selected.drop(columns=["_merge"])
+                checks.append({"check": "available_audit_exact_selector_id_join", "status": "pass", "detail": f"{candidate.candidate_id}: {len(selected)} trades"})
+                return add_calendar(selected).sort_values("entry_time"), "selector_id_join"
+            checks.append({"check": "available_audit_exact_selector_id_join", "status": "fail", "detail": f"{missing} selected trade ids did not join"})
+            reasons.append(f"{missing} selected trade ids did not join to frozen registry reference trades.")
+        else:
+            checks.append({"check": "available_audit_exact_selector_id_join", "status": "fail", "detail": "selector id or trade_id mapping unavailable"})
+    else:
+        checks.append({"check": "available_audit_reference_inputs_exist", "status": "fail", "detail": "missing frozen registry reference trades or selected ids"})
+
+    if reference_trades.exists():
+        try:
+            trades = pd.read_csv(reference_trades)
+            selected = select_candidate(trades, candidate)
+            checks.append({"check": "available_audit_selector_filter_fallback", "status": "pass", "detail": f"{len(selected)} trades"})
+            reasons.append("Used fallback filter root=MNQ, timeframe=60, variant=donchian_breakout, confluence_score>=6 because exact selector-id mapping was insufficient.")
+            return selected, "fallback_filter"
+        except Exception as exc:  # noqa: BLE001
+            checks.append({"check": "available_audit_selector_filter_fallback", "status": "fail", "detail": str(exc)})
+            reasons.append(f"Available-data audit selection failed: {exc}")
+    return pd.DataFrame(), "unavailable"
+
+
+def adjusted_pnl(selected: pd.DataFrame, slippage_ticks_per_side: float, commission: float) -> pd.Series:
+    slippage_cost = slippage_ticks_per_side * 2.0 * TICK_SIZE * MNQ_POINT_VALUE
+    total_cost = commission + slippage_cost
+    return selected["pnl_dollars"].astype(float) - total_cost if not selected.empty else pd.Series(dtype=float)
+
+
 def summarize(selected: pd.DataFrame, slippage_ticks_per_side: float, commission: float, scope: str, scope_value: str) -> dict[str, Any]:
     slippage_cost = slippage_ticks_per_side * 2.0 * TICK_SIZE * MNQ_POINT_VALUE
     total_cost = commission + slippage_cost
-    pnl = selected["pnl_dollars"].astype(float) - total_cost if not selected.empty else pd.Series(dtype=float)
+    pnl = adjusted_pnl(selected, slippage_ticks_per_side, commission)
     net = float(pnl.sum()) if not pnl.empty else 0.0
     largest = float(pnl.max()) if not pnl.empty else 0.0
     net_ex_largest = net - largest if not pnl.empty else 0.0
@@ -237,10 +277,10 @@ def summarize(selected: pd.DataFrame, slippage_ticks_per_side: float, commission
     }
 
 
-def concentration(selected: pd.DataFrame) -> dict[str, Any]:
+def concentration(selected: pd.DataFrame, slippage_ticks_per_side: float = 0.0, commission: float = 0.0) -> dict[str, Any]:
     if selected.empty:
         return {"best_day_share": None, "best_week_share": None}
-    pnl = selected["pnl_dollars"].astype(float)
+    pnl = adjusted_pnl(selected, slippage_ticks_per_side, commission)
     net = float(pnl.sum())
     if net <= 0:
         return {"best_day_share": None, "best_week_share": None}
@@ -252,9 +292,60 @@ def concentration(selected: pd.DataFrame) -> dict[str, Any]:
     }
 
 
-def write_source_lineage(path: Path, input_manifest: dict[str, Any], verdict: str, reasons: list[str]) -> None:
+def append_gate_reason(reasons: list[str], text: str) -> None:
+    if text not in reasons:
+        reasons.append(text)
+
+
+def evaluate_verdict(baseline: pd.Series, summary: pd.DataFrame, analysis_mode: str, min_trades: int, min_weeks: int, reasons: list[str]) -> str:
+    if int(baseline["trades"]) < min_trades:
+        append_gate_reason(reasons, f"Only {int(baseline['trades'])} trades; minimum is {min_trades}.")
+        return "under_sampled_no_forward_data" if analysis_mode == "available_data_audit" else "under_sampled_continue_monitoring"
+    if int(baseline["weeks"]) < min_weeks:
+        append_gate_reason(reasons, f"Only {int(baseline['weeks'])} weeks; minimum is {min_weeks}.")
+        return "under_sampled_no_forward_data" if analysis_mode == "available_data_audit" else "under_sampled_continue_monitoring"
+
+    failed_gate = False
+    if float(baseline["net_dollars"]) <= 0:
+        append_gate_reason(reasons, "Net PnL is not positive.")
+        failed_gate = True
+    if float(baseline["profit_factor"]) < 1.10:
+        append_gate_reason(reasons, "Profit factor is below 1.10.")
+        failed_gate = True
+    if float(baseline["max_drawdown_dollars"]) > 2500:
+        append_gate_reason(reasons, "Max drawdown exceeds $2,500.")
+        failed_gate = True
+    if float(baseline["net_without_largest"]) <= 0:
+        append_gate_reason(reasons, "Net PnL excluding the largest winner is not positive.")
+        failed_gate = True
+    if pd.notna(baseline["largest_winner_share"]) and float(baseline["largest_winner_share"]) >= 0.50:
+        append_gate_reason(reasons, "Largest winner explains at least 50% of net profit.")
+        failed_gate = True
+    if pd.notna(baseline["best_day_share"]) and float(baseline["best_day_share"]) >= 0.50:
+        append_gate_reason(reasons, "Best day explains at least 50% of net profit.")
+        failed_gate = True
+    if pd.notna(baseline["best_week_share"]) and float(baseline["best_week_share"]) >= 0.50:
+        append_gate_reason(reasons, "Best week explains at least 50% of net profit.")
+        failed_gate = True
+    if failed_gate:
+        return "fail_demote_to_diagnostic_only"
+
+    two_tick = summary[(summary["scope"] == "full") & (summary["slippage_ticks_per_side"] == 2)]
+    if not two_tick.empty and float(two_tick.iloc[0]["profit_factor"]) < 1.05:
+        append_gate_reason(reasons, "PF under 2 ticks per side slippage is below 1.05.")
+        return "fail_demote_to_diagnostic_only"
+
+    if analysis_mode == "available_data_audit":
+        append_gate_reason(reasons, "No true post-selection forward file exists; positive result remains prior/reference/local available-data evidence.")
+        return "partial_available_data_audit"
+    return "pass_forward_validation"
+
+
+def write_source_lineage(path: Path, input_manifest: dict[str, Any], verdict: str, reasons: list[str], analysis_mode: str) -> None:
     lines = [
-        "# Donchian Forward Validation Source Lineage",
+        "# Donchian Validation Source Lineage",
+        "",
+        f"Analysis mode: `{analysis_mode}`",
         "",
         f"Verdict gate: `{verdict}`",
         "",
@@ -275,15 +366,19 @@ def write_source_lineage(path: Path, input_manifest: dict[str, Any], verdict: st
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_verdict(path: Path, summary: pd.DataFrame, checks: pd.DataFrame, verdict: str, reasons: list[str]) -> None:
+def write_verdict(path: Path, summary: pd.DataFrame, checks: pd.DataFrame, verdict: str, reasons: list[str], analysis_mode: str, selection_method: str) -> None:
     lines = [
-        "# Donchian Forward Validation Verdict",
+        "# Donchian Validation Verdict",
+        "",
+        f"Analysis mode: `{analysis_mode}`",
         "",
         f"Verdict: `{verdict}`",
         "",
         "Candidate: `mnq_60_donchian_confluence_ge6`",
         "",
-        "This report does not approve paper/live trading. It is only the issue #11 frozen forward/local validation monitor.",
+        f"Selection method: `{selection_method}`",
+        "",
+        "This report does not approve paper/live trading. It is only the issue #11 frozen forward/local validation monitor. In `available_data_audit` mode it is prior/reference/local evidence, not forward validation.",
         "",
         "## Reasons",
         "",
@@ -292,11 +387,13 @@ def write_verdict(path: Path, summary: pd.DataFrame, checks: pd.DataFrame, verdi
     lines.extend(["", "## Join And Lineage Checks", "", "| Check | Status | Detail |", "|---|---|---|"])
     for row in checks.itertuples(index=False):
         lines.append(f"| {row.check} | {row.status} | {row.detail} |")
-    lines.extend(["", "## Summary", "", "| Scope | Slippage | Trades | Weeks | Net | PF | Max DD | Largest Share | Net Ex Largest |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|"])
+    lines.extend(["", "## Summary", "", "| Scope | Slippage | Trades | Weeks | Net | PF | Max DD | Largest Share | Best Day | Best Week | Net Ex Largest |", "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"])
     for row in summary.itertuples(index=False):
         largest = "" if row.largest_winner_share is None or pd.isna(row.largest_winner_share) else f"{row.largest_winner_share * 100:.1f}%"
+        best_day = "" if row.best_day_share is None or pd.isna(row.best_day_share) else f"{row.best_day_share * 100:.1f}%"
+        best_week = "" if row.best_week_share is None or pd.isna(row.best_week_share) else f"{row.best_week_share * 100:.1f}%"
         lines.append(
-            f"| {row.scope}:{row.scope_value} | {row.slippage_ticks_per_side:.1f} | {row.trades} | {row.weeks} | {money(row.net_dollars)} | {fmt_pf(row.profit_factor)} | {money(row.max_drawdown_dollars)} | {largest} | {money(row.net_without_largest)} |"
+            f"| {row.scope}:{row.scope_value} | {row.slippage_ticks_per_side:.1f} | {row.trades} | {row.weeks} | {money(row.net_dollars)} | {fmt_pf(row.profit_factor)} | {money(row.max_drawdown_dollars)} | {largest} | {best_day} | {best_week} | {money(row.net_without_largest)} |"
         )
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -312,14 +409,20 @@ def main() -> int:
     data_root = args.data_root
     package_manifest = data_root / "IMPORT_MANIFEST.json"
     reference_trades = data_root / "frozen_registry_reference" / "trades_with_context.csv.gz"
+    reference_summary = data_root / "frozen_registry_reference" / "summary.csv"
+    selected_trade_ids = data_root / "frozen_registry_reference" / "selected_trade_ids.csv.gz"
     candidate_trades = data_root / "candidate_trades" / "trades_nonoverlap.csv.gz"
+    candidate_summary = data_root / "candidate_trades" / "summary_nonoverlap.csv"
     ohlcv_context = data_root / "ohlcv_context" / "front_1m.parquet"
     inputs = [
         ("data_root", data_root),
         ("package_import_manifest", package_manifest),
         ("required_forward_trades", args.forward_trades),
-        ("reference_trades_not_forward", reference_trades),
-        ("candidate_trades_context_source", candidate_trades),
+        ("frozen_registry_reference_summary", reference_summary),
+        ("frozen_registry_selected_trade_ids", selected_trade_ids),
+        ("frozen_registry_reference_trades", reference_trades),
+        ("candidate_trades_background_summary", candidate_summary),
+        ("candidate_trades_background_source", candidate_trades),
         ("ohlcv_context", ohlcv_context),
     ]
     input_manifest = {
@@ -340,11 +443,9 @@ def main() -> int:
             checks.append({"check": f"{item['role']}_repo_relative", "status": "pass", "detail": item["path"]})
 
     forward_info = next(item for item in input_manifest["inputs"] if item["role"] == "required_forward_trades")
-    if not forward_info["exists"]:
-        checks.append({"check": "required_forward_trades_exists", "status": "fail", "detail": forward_info["path"]})
-        reasons.append("No eligible forward trades-with-context input exists under the repo-relative data package.")
-        selected = pd.DataFrame()
-    else:
+    if forward_info["exists"]:
+        analysis_mode = "forward_validation"
+        selection_method = "forward_filter"
         checks.append({"check": "required_forward_trades_exists", "status": "pass", "detail": forward_info["path"]})
         trades = pd.read_csv(args.forward_trades)
         try:
@@ -354,6 +455,11 @@ def main() -> int:
             selected = pd.DataFrame()
             checks.append({"check": "frozen_selector_columns", "status": "fail", "detail": str(exc)})
             reasons.append(str(exc))
+    else:
+        analysis_mode = "available_data_audit"
+        checks.append({"check": "required_forward_trades_exists", "status": "missing_expected_for_audit", "detail": forward_info["path"]})
+        reasons.append("True forward trades-with-context file is absent; running available-data audit against frozen registry reference evidence.")
+        selected, selection_method = select_available_audit_candidate(data_root, candidate, checks, reasons)
 
     if selected.empty:
         slippage = parse_slippage(args.slippage_scenarios)
@@ -361,7 +467,7 @@ def main() -> int:
             [
                 {
                     **summarize(pd.DataFrame(columns=["pnl_dollars", "forward_date", "forward_week"]), slip, args.commission_round_turn, "full", "all"),
-                    **concentration(pd.DataFrame()),
+                    **concentration(pd.DataFrame(), slip, args.commission_round_turn),
                     "candidate_id": candidate.candidate_id,
                 }
                 for slip in slippage
@@ -370,36 +476,27 @@ def main() -> int:
     else:
         rows: list[dict[str, Any]] = []
         for slip in parse_slippage(args.slippage_scenarios):
-            rows.append({**summarize(selected, slip, args.commission_round_turn, "full", "all"), **concentration(selected), "candidate_id": candidate.candidate_id})
+            rows.append({**summarize(selected, slip, args.commission_round_turn, "full", "all"), **concentration(selected, slip, args.commission_round_turn), "candidate_id": candidate.candidate_id})
             for week, group in selected.groupby("forward_week", sort=True):
-                rows.append({**summarize(group, slip, args.commission_round_turn, "week", str(week)), **concentration(group), "candidate_id": candidate.candidate_id})
+                rows.append({**summarize(group, slip, args.commission_round_turn, "week", str(week)), **concentration(group, slip, args.commission_round_turn), "candidate_id": candidate.candidate_id})
             for day, group in selected.groupby("forward_date", sort=True):
-                rows.append({**summarize(group, slip, args.commission_round_turn, "day", str(day)), **concentration(group), "candidate_id": candidate.candidate_id})
+                rows.append({**summarize(group, slip, args.commission_round_turn, "day", str(day)), **concentration(group, slip, args.commission_round_turn), "candidate_id": candidate.candidate_id})
         summary = pd.DataFrame(rows)
 
     baseline = summary[(summary["scope"] == "full") & (summary["slippage_ticks_per_side"] == 0)].iloc[0]
-    if reasons:
+    lineage_failures = [check for check in checks if check["status"] == "fail"]
+    if lineage_failures:
         verdict = "incomplete_data_lineage"
-    elif baseline["trades"] < args.min_trades:
-        verdict = "under_sampled_continue_monitoring"
-        reasons.append(f"Only {int(baseline['trades'])} trades; minimum is {args.min_trades}.")
-    elif baseline["weeks"] < args.min_weeks:
-        verdict = "under_sampled_continue_monitoring"
-        reasons.append(f"Only {int(baseline['weeks'])} weeks; minimum is {args.min_weeks}.")
-    elif baseline["net_dollars"] <= 0 or baseline["profit_factor"] < 1.10 or baseline["max_drawdown_dollars"] > 2500 or baseline["net_without_largest"] <= 0 or (pd.notna(baseline["largest_winner_share"]) and baseline["largest_winner_share"] >= 0.50):
-        verdict = "fail_demote_to_diagnostic_only"
+        append_gate_reason(reasons, "One or more required package inputs could not be read or reconciled.")
     else:
-        two_tick = summary[(summary["scope"] == "full") & (summary["slippage_ticks_per_side"] == 2)]
-        if not two_tick.empty and float(two_tick.iloc[0]["profit_factor"]) < 1.05:
-            verdict = "fail_demote_to_diagnostic_only"
-            reasons.append("PF under 2 ticks per side slippage is below 1.05.")
-        else:
-            verdict = "pass_forward_validation"
+        verdict = evaluate_verdict(baseline, summary, analysis_mode, args.min_trades, args.min_weeks, reasons)
 
     config = {
         "schema_version": 1,
         "generated_by": "scripts/run_donchian_forward_validation.py",
         "github_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/11",
+        "analysis_mode": analysis_mode,
+        "selection_method": selection_method,
         "candidate": candidate.__dict__,
         "data_root": repo_path(data_root),
         "forward_trades": repo_path(args.forward_trades),
@@ -420,8 +517,8 @@ def main() -> int:
     checks_df.to_csv(out_dir / "join_checks.csv", index=False)
     summary.to_csv(out_dir / "donchian_forward_summary.csv", index=False)
     selected.to_csv(out_dir / "selected_trades.csv.gz", index=False)
-    write_source_lineage(out_dir / "source_lineage.md", input_manifest, verdict, reasons)
-    write_verdict(out_dir / "VERDICT.md", summary, checks_df, verdict, reasons)
+    write_source_lineage(out_dir / "source_lineage.md", input_manifest, verdict, reasons, analysis_mode)
+    write_verdict(out_dir / "VERDICT.md", summary, checks_df, verdict, reasons, analysis_mode, selection_method)
     print(out_dir / "VERDICT.md")
     print(verdict)
     return 0

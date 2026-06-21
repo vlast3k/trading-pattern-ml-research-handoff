@@ -41,6 +41,57 @@
       "role": "required_forward_trades"
     },
     {
+      "path": "data/local_canonical/donchian_forward_20260620/frozen_registry_reference/summary.csv",
+      "exists": true,
+      "repo_relative": true,
+      "kind": "file",
+      "size_bytes": 7466,
+      "sha256": "ed6485531cb5fb83d8d266d2a02130a0f4e861df7cd2f090bc503e30fef70245",
+      "git_ignored": true,
+      "row_count": 16,
+      "columns": [
+        "selector_id",
+        "description",
+        "status",
+        "verdict",
+        "root",
+        "timeframe",
+        "variant",
+        "rationale",
+        "split",
+        "trades",
+        "days",
+        "net_dollars",
+        "profit_factor",
+        "max_drawdown_dollars",
+        "win_rate",
+        "avg_r",
+        "total_r",
+        "avg_risk_ticks",
+        "best_trade_share",
+        "largest_winner",
+        "largest_winner_share",
+        "net_without_largest",
+        "pf_without_largest"
+      ],
+      "role": "frozen_registry_reference_summary"
+    },
+    {
+      "path": "data/local_canonical/donchian_forward_20260620/frozen_registry_reference/selected_trade_ids.csv.gz",
+      "exists": true,
+      "repo_relative": true,
+      "kind": "file",
+      "size_bytes": 523,
+      "sha256": "ce4b399314fa7e8c8e1841ee978c4d387d7c24ba11dd2d12f474e67357f43da0",
+      "git_ignored": true,
+      "row_count": 147,
+      "columns": [
+        "selector_id",
+        "trade_id"
+      ],
+      "role": "frozen_registry_selected_trade_ids"
+    },
+    {
       "path": "data/local_canonical/donchian_forward_20260620/frozen_registry_reference/trades_with_context.csv.gz",
       "exists": true,
       "repo_relative": true,
@@ -132,7 +183,37 @@
       "signal_time_last": "2026-06-08T00:30:00+00:00",
       "exit_time_first": "2026-04-02T01:00:00+00:00",
       "exit_time_last": "2026-06-08T09:30:00+00:00",
-      "role": "reference_trades_not_forward"
+      "role": "frozen_registry_reference_trades"
+    },
+    {
+      "path": "data/local_canonical/donchian_forward_20260620/candidate_trades/summary_nonoverlap.csv",
+      "exists": true,
+      "repo_relative": true,
+      "kind": "file",
+      "size_bytes": 31132,
+      "sha256": "282d303c968e7f62ca7da9705c6d6713ce66c247c0f51a30df583a6182cecf74",
+      "git_ignored": true,
+      "row_count": 232,
+      "columns": [
+        "root",
+        "timeframe",
+        "variant",
+        "registered_ohlcv",
+        "split",
+        "trades",
+        "days",
+        "win_rate",
+        "net_dollars",
+        "profit_factor",
+        "max_drawdown_dollars",
+        "avg_r",
+        "total_r",
+        "avg_risk_points",
+        "targets",
+        "stops",
+        "timeouts"
+      ],
+      "role": "candidate_trades_background_summary"
     },
     {
       "path": "data/local_canonical/donchian_forward_20260620/candidate_trades/trades_nonoverlap.csv.gz",
@@ -176,7 +257,7 @@
       "signal_time_last": "2026-06-08T02:30:00+00:00",
       "exit_time_first": "2026-04-01T17:45:00+00:00",
       "exit_time_last": "2026-06-08T09:30:00+00:00",
-      "role": "candidate_trades_context_source"
+      "role": "candidate_trades_background_source"
     },
     {
       "path": "data/local_canonical/donchian_forward_20260620/ohlcv_context/front_1m.parquet",
