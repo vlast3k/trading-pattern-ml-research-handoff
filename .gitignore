@@ -12,6 +12,10 @@
 data/databento_2025q1_replication/
 data/canonical_databento_mnq_2025q1/*.csv.gz
 data/canonical_orderflow_1s/
+data/local_canonical/**
+!data/local_canonical/**/
+!data/local_canonical/**/IMPORT_MANIFEST.json
+!data/local_canonical/**/README.md
 
 # Local scratch/cache files
 .venv/

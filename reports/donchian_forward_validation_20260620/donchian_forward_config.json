@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "generated_by": "scripts/run_donchian_forward_validation.py",
+  "github_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/11",
+  "analysis_mode": "available_data_audit",
+  "selection_method": "selector_id_join",
+  "candidate": {
+    "candidate_id": "mnq_60_donchian_confluence_ge6",
+    "family": "donchian_breakout",
+    "root": "MNQ",
+    "timeframe": 60,
+    "variant": "donchian_breakout",
+    "selector_column": "confluence_score",
+    "selector_op": ">=",
+    "selector_value": 6.0,
+    "status_entering_issue": "primary_validation_candidate",
+    "formula": "20-bar prior high/low Donchian breakout; ATR(14) * 1.10 stop; reward/risk 2.0; max hold 20 bars."
+  },
+  "data_root": "data/local_canonical/donchian_forward_20260620",
+  "forward_trades": "data/local_canonical/donchian_forward_20260620/forward_trades/trades_with_context.csv.gz",
+  "cost_model": {
+    "pnl_column": "pnl_dollars",
+    "commission_round_turn_dollars": 2.24,
+    "slippage_ticks_per_side": [
+      0.0,
+      1.0,
+      2.0
+    ],
+    "tick_size": 0.25,
+    "mnq_point_value": 2.0
+  },
+  "minimum_evidence": {
+    "trades": 30,
+    "weeks": 4
+  },
+  "verdict": "fail_demote_to_diagnostic_only",
+  "verdict_reasons": [
+    "True forward trades-with-context file is absent; running available-data audit against frozen registry reference evidence.",
+    "Largest winner explains at least 50% of net profit.",
+    "Best day explains at least 50% of net profit.",
+    "Best week explains at least 50% of net profit."
+  ]
+}
