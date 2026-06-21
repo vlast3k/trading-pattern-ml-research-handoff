@@ -395,7 +395,7 @@ def main() -> None:
         "phase2_ran": False,
         "phase2_skip_reason": PHASE2_SKIP_REASON,
         "top_level_report": repo_rel(top_report),
-        "outputs": sorted(path.name for path in out.iterdir()),
+        "outputs": sorted([path.name for path in out.iterdir()] + [top_report.name, "triage_metadata.json"]),
         "forbidden_verdicts": cfg.get("forbidden_verdicts", []),
     }
     (out / "triage_metadata.json").write_text(json.dumps(metadata, indent=2, sort_keys=True) + "\n", encoding="utf-8")
