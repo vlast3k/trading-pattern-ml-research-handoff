@@ -1,0 +1,9 @@
+signal,state,largest_winner_share,best_day_share,best_week_share,net_excluding_largest,skip_reason
+donchian_simple_60m,compression,,,,,phase2_not_requested_in_initial_scaffold
+donchian_simple_60m,neutral,,,,,phase2_not_requested_in_initial_scaffold
+donchian_simple_60m,expansion,,,,,phase2_not_requested_in_initial_scaffold
+donchian_simple_60m,unconditional,,,,,phase2_not_requested_in_initial_scaffold
+rsi_reversion_30m,compression,,,,,phase2_not_requested_in_initial_scaffold
+rsi_reversion_30m,neutral,,,,,phase2_not_requested_in_initial_scaffold
+rsi_reversion_30m,expansion,,,,,phase2_not_requested_in_initial_scaffold
+rsi_reversion_30m,unconditional,,,,,phase2_not_requested_in_initial_scaffold

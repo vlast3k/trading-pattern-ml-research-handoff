@@ -1,0 +1,33 @@
+{
+  "forbidden_verdicts": [
+    "pass_forward_validation",
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate"
+  ],
+  "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/19",
+  "outputs": [
+    "ATR_REGIME_CONDITIONING_20260621.md",
+    "VERDICT.md",
+    "bin_grid_diagnostics.csv",
+    "concentration_by_state.csv",
+    "daily_state_table.csv",
+    "local_ninja_parity_check.csv",
+    "next_day_behavior_by_state.csv",
+    "signal_controls_unconditional.csv",
+    "signal_performance_by_state.csv",
+    "source_lineage.md",
+    "state_definition.json",
+    "state_distribution_by_year.csv",
+    "state_quality_summary.csv",
+    "triage_metadata.json"
+  ],
+  "phase1_ok": true,
+  "phase1_reasons": [],
+  "phase2_ran": false,
+  "phase2_requested": false,
+  "phase2_skip_reason": "phase2_not_implemented_in_initial_scaffold",
+  "schema_version": 1,
+  "top_level_report": "ATR_REGIME_CONDITIONING_20260621.md",
+  "verdict": "incomplete_reproducibility"
+}

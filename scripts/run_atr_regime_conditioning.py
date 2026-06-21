@@ -236,12 +236,52 @@ def phase1_gate(d: pd.DataFrame, cfg: dict[str, Any]) -> tuple[bool, list[str]]:
     return not reasons, reasons
 
 
-def empty_signal_outputs(out: Path, reason: str) -> None:
+def skipped_signal_outputs(out: Path, cfg: dict[str, Any], reason: str) -> None:
+    signals = sorted(cfg.get("signals", {}).keys()) or ["unknown_signal"]
+    states = ["compression", "neutral", "expansion"]
     perf_cols = ["signal", "state", "slippage_ticks_per_side", "trades", "net_dollars", "profit_factor", "skip_reason"]
-    pd.DataFrame(columns=perf_cols).assign(skip_reason=reason).to_csv(out / "signal_performance_by_state.csv", index=False)
-    pd.DataFrame(columns=perf_cols).assign(skip_reason=reason).to_csv(out / "signal_controls_unconditional.csv", index=False)
+    perf_rows = [
+        {
+            "signal": signal,
+            "state": state,
+            "slippage_ticks_per_side": "",
+            "trades": 0,
+            "net_dollars": "",
+            "profit_factor": "",
+            "skip_reason": reason,
+        }
+        for signal in signals
+        for state in states
+    ]
+    unconditional_rows = [
+        {
+            "signal": signal,
+            "state": "unconditional",
+            "slippage_ticks_per_side": "",
+            "trades": 0,
+            "net_dollars": "",
+            "profit_factor": "",
+            "skip_reason": reason,
+        }
+        for signal in signals
+    ]
+    pd.DataFrame(perf_rows, columns=perf_cols).to_csv(out / "signal_performance_by_state.csv", index=False)
+    pd.DataFrame(unconditional_rows, columns=perf_cols).to_csv(out / "signal_controls_unconditional.csv", index=False)
     concentration_cols = ["signal", "state", "largest_winner_share", "best_day_share", "best_week_share", "net_excluding_largest", "skip_reason"]
-    pd.DataFrame(columns=concentration_cols).assign(skip_reason=reason).to_csv(out / "concentration_by_state.csv", index=False)
+    concentration_rows = [
+        {
+            "signal": signal,
+            "state": state,
+            "largest_winner_share": "",
+            "best_day_share": "",
+            "best_week_share": "",
+            "net_excluding_largest": "",
+            "skip_reason": reason,
+        }
+        for signal in signals
+        for state in [*states, "unconditional"]
+    ]
+    pd.DataFrame(concentration_rows, columns=concentration_cols).to_csv(out / "concentration_by_state.csv", index=False)
 
 
 def write_lineage(out: Path, cfg: dict[str, Any], sources: list[dict[str, Any]]) -> None:
@@ -339,7 +379,34 @@ def prepare_output_dir(out: Path, force: bool) -> None:
 
 def write_top_level_report(date: str, out: Path) -> Path:
     target = Path(f"ATR_REGIME_CONDITIONING_{date}.md")
-    target.write_text((out / "VERDICT.md").read_text(encoding="utf-8"), encoding="utf-8")
+    text = [(out / "VERDICT.md").read_text(encoding="utf-8").rstrip(), ""]
+
+    quality_path = out / "state_quality_summary.csv"
+    if quality_path.exists():
+        quality = pd.read_csv(quality_path)
+        text += [
+            "## Phase 1 State Summary",
+            "",
+            "| Root | Compression days | Neutral days | Expansion days | Compression median range | Expansion median range | Expansion > compression |",
+            "|---|---:|---:|---:|---:|---:|---|",
+        ]
+        for row in quality.to_dict("records"):
+            text.append(
+                "| {root} | {compression_days} | {neutral_days} | {expansion_days} | {compression_median_range} | {expansion_median_range} | {expansion_median_range_above_compression} |".format(
+                    **row
+                )
+            )
+        text.append("")
+
+    text += [
+        "## Generated Artifacts",
+        "",
+        f"- Report directory: `{repo_rel(out)}`",
+        "- Main tables: `state_distribution_by_year.csv`, `next_day_behavior_by_state.csv`, `bin_grid_diagnostics.csv`, `local_ninja_parity_check.csv`.",
+        "- Signal tables are placeholders with explicit skip reasons because Phase 2 was not run in this scaffold.",
+        "",
+    ]
+    target.write_text("\n".join(text), encoding="utf-8")
     return target
 
 
@@ -361,7 +428,7 @@ def main() -> None:
     state_quality_summary(daily, cfg).to_csv(out / "state_quality_summary.csv", index=False)
 
     phase1_ok, reasons = phase1_gate(daily, cfg)
-    empty_signal_outputs(out, PHASE2_SKIP_REASON if args.run_phase2 else "phase2_not_requested_in_initial_scaffold")
+    skipped_signal_outputs(out, cfg, PHASE2_SKIP_REASON if args.run_phase2 else "phase2_not_requested_in_initial_scaffold")
 
     if args.local_parity:
         local_path = Path(cfg["data_sources"].get("local_ninja_ohlcv_1m", ""))

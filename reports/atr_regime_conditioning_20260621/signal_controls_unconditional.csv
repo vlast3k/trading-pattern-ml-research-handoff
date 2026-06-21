@@ -1,0 +1,3 @@
+signal,state,slippage_ticks_per_side,trades,net_dollars,profit_factor,skip_reason
+donchian_simple_60m,unconditional,,0,,,phase2_not_requested_in_initial_scaffold
+rsi_reversion_30m,unconditional,,0,,,phase2_not_requested_in_initial_scaffold
