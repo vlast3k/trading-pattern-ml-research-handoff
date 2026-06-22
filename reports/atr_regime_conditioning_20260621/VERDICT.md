@@ -17,6 +17,7 @@ Interpretation:
 - The ATR proxy separates next-day range directionally, but the spread is modest and noisy.
 - Neutral and expansion median ranges are close, and diagnostic bins are not monotonic enough to imply a stable structural regime.
 - This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.
+- The supplemental 2026 Q1 window does not support the expansion/compression split: expansion median range is below compression median range for both MNQ and NQ.
 - Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.
 
 ## Phase 2
@@ -28,6 +29,9 @@ RSI status: `rsi_exact_frozen_definition_not_recovered_without_inference`
 Interpretation:
 - Simple Donchian 60m is diagnostic only and is not the failed confluence candidate.
 - RSI reversion is unavailable unless the exact frozen definition is recovered without inference.
+- The simple Donchian diagnostic A/B found no tradable state-conditioned edge.
+- Donchian neutral-state rows were positive in aggregate but failed required PF/concentration gates and failed badly in 2025.
+- Donchian compression and expansion rows were negative after costs.
 - No row in this issue can approve strategy promotion by itself.
 
 Guardrails:
