@@ -15,6 +15,7 @@ Reasons:
 
 Interpretation:
 - The ATR proxy separates next-day range directionally, but the spread is modest and noisy.
+- Neutral and expansion median ranges are close, and diagnostic bins are not monotonic enough to imply a stable structural regime.
 - This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.
 - Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.
 
@@ -56,8 +57,10 @@ This is a diagnostic A/B only. It is not a validation of the failed Donchian con
 ## Interpretation
 
 - Phase 1 separation is modest/noisy: expansion has higher median range than compression, but this is only a lagging realized-volatility proxy.
+- Neutral and expansion medians are close, and diagnostic bins are not monotonic enough to treat the state proxy as structurally proven.
 - The proxy must not be described as actual gamma exposure or a proven structural market regime.
 - RSI remains unavailable because the exact frozen definition was not recovered without inference.
+- Local Ninja parity is under-sampled and should be read as sanity/recency context only, not confirmatory validation.
 
 ## Generated Artifacts
 

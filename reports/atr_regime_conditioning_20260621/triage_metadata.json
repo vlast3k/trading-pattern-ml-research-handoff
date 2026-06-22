@@ -6,6 +6,7 @@
     "primary_validation_candidate"
   ],
   "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/19",
+  "local_ninja_parity_status": "under_sampled_recency_sanity_only_not_confirmatory",
   "outputs": [
     "ATR_REGIME_CONDITIONING_20260621.md",
     "VERDICT.md",

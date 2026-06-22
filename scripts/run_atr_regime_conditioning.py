@@ -606,6 +606,10 @@ def write_lineage(out: Path, cfg: dict[str, Any], sources: list[dict[str, Any]],
         f"Primary Databento output is filtered to `{primary_window.get('label')}`: `{primary_window.get('start')}` through `{primary_window.get('end')}`.",
         "Supplemental windows, when requested, are written separately and are not pooled into the primary verdict.",
         "",
+        "## Local Ninja parity",
+        "",
+        "Local Ninja parity is a small recency sanity check only. Its state counts are under-sampled and must not be treated as confirmatory evidence.",
+        "",
         "## Lookahead guard",
         "",
         "State for day t uses prior-day TR and ATR over completed prior sessions only. Current-day high/low is not included in the state for that day.",
@@ -652,6 +656,7 @@ def write_verdict(
         "",
         "Interpretation:",
         "- The ATR proxy separates next-day range directionally, but the spread is modest and noisy.",
+        "- Neutral and expansion median ranges are close, and diagnostic bins are not monotonic enough to imply a stable structural regime.",
         "- This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.",
         "- Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.",
         "",
@@ -741,8 +746,10 @@ def write_top_level_report(date: str, out: Path) -> Path:
         "## Interpretation",
         "",
         "- Phase 1 separation is modest/noisy: expansion has higher median range than compression, but this is only a lagging realized-volatility proxy.",
+        "- Neutral and expansion medians are close, and diagnostic bins are not monotonic enough to treat the state proxy as structurally proven.",
         "- The proxy must not be described as actual gamma exposure or a proven structural market regime.",
         "- RSI remains unavailable because the exact frozen definition was not recovered without inference.",
+        "- Local Ninja parity is under-sampled and should be read as sanity/recency context only, not confirmatory validation.",
         "",
         "## Generated Artifacts",
         "",
@@ -795,7 +802,7 @@ def main() -> None:
         local_path = Path(cfg["data_sources"].get("local_ninja_ohlcv_1m", ""))
         if local_path.exists():
             local = read_ohlcv(local_path, cfg, "local_ninja_ohlcv_1m")
-            sources.append(source_info(local, "local_ninja_ohlcv_1m", local_path, "local_parity_recency_check"))
+            sources.append(source_info(local, "local_ninja_ohlcv_1m", local_path, "local_parity_under_sampled_recency_sanity_only"))
             local_daily = daily_state(local, cfg)
             behavior(local_daily, "state").to_csv(out / "local_ninja_parity_check.csv", index=False)
         else:
@@ -827,6 +834,7 @@ def main() -> None:
         "phase2_ran": phase2_ran,
         "phase2_result": phase2_verdict,
         "rsi_status": RSI_UNAVAILABLE_REASON,
+        "local_ninja_parity_status": "under_sampled_recency_sanity_only_not_confirmatory",
         "top_level_report": repo_rel(top_report),
         "outputs": sorted([path.name for path in out.iterdir()] + [top_report.name, "triage_metadata.json"]),
         "forbidden_verdicts": cfg.get("forbidden_verdicts", []),

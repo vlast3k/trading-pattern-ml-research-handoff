@@ -15,6 +15,7 @@ Reasons:
 
 Interpretation:
 - The ATR proxy separates next-day range directionally, but the spread is modest and noisy.
+- Neutral and expansion median ranges are close, and diagnostic bins are not monotonic enough to imply a stable structural regime.
 - This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.
 - Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.
 

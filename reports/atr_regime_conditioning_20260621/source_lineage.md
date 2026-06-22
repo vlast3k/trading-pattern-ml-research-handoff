@@ -1,11 +1,11 @@
 # Source Lineage
 
-Generated: 2026-06-22T03:39:14.483956+00:00
+Generated: 2026-06-22T04:20:55.748602+00:00
 
 | Source | Path | File size bytes | Rows | First | Last | Role |
 |---|---|---:|---:|---|---|---|
 | databento_ohlcv_1m | `../trading/data/databento_ohlcv_1m/front_1m.parquet` | 40758404 | 2122069 | 2023-01-02T23:00:00+00:00 | 2025-12-31T21:59:00+00:00 | primary_long_history |
-| local_ninja_ohlcv_1m | `../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet` | 1943862 | 124112 | 2026-04-01T11:00:00+00:00 | 2026-06-08T09:57:00+00:00 | local_parity_recency_check |
+| local_ninja_ohlcv_1m | `../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet` | 1943862 | 124112 | 2026-04-01T11:00:00+00:00 | 2026-06-08T09:57:00+00:00 | local_parity_under_sampled_recency_sanity_only |
 
 ## Session convention
 
@@ -16,6 +16,10 @@ Session convention label: `calendar_date_after_converting_utc_bars_to_America_Ne
 
 Primary Databento output is filtered to `primary_2023_2025`: `2023-01-01` through `2025-12-31`.
 Supplemental windows, when requested, are written separately and are not pooled into the primary verdict.
+
+## Local Ninja parity
+
+Local Ninja parity is a small recency sanity check only. Its state counts are under-sampled and must not be treated as confirmatory evidence.
 
 ## Lookahead guard
 
