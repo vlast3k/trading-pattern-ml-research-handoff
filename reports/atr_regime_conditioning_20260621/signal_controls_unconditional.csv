@@ -1,0 +1,7 @@
+signal,root,state,slippage_ticks_per_side,trades,net_dollars,profit_factor,max_drawdown_dollars,win_rate,largest_winner_share,best_day_share,best_week_share,net_excluding_largest,passes_cost_and_concentration_gates,skip_reason
+donchian_simple_60m,MNQ,unconditional,1.0,1223,-4776.5,0.9415986550511998,11758.5,0.49795584627964024,0.0,0.0,0.0,-6405.5,False,
+donchian_simple_60m,NQ,unconditional,1.0,1227,-33325.0,0.9587429123232724,110625.0,0.5004074979625102,0.0,0.0,0.0,-49635.0,False,
+donchian_simple_60m,MNQ,unconditional,2.0,1223,-5999.5,0.9271927429386244,12104.5,0.4938675388389207,0.0,0.0,0.0,-7627.5,False,
+donchian_simple_60m,NQ,unconditional,2.0,1227,-45595.0,0.9439782277485624,114095.0,0.49551752241238795,0.0,0.0,0.0,-61895.0,False,
+rsi_reversion_30m,MNQ,unconditional,1.0,0,,,,,,,,,False,rsi_exact_frozen_definition_not_recovered_without_inference
+rsi_reversion_30m,NQ,unconditional,1.0,0,,,,,,,,,False,rsi_exact_frozen_definition_not_recovered_without_inference

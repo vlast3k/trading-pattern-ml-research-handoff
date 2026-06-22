@@ -1,0 +1,28 @@
+{
+  "atr_window_days": 20,
+  "compression_threshold": 0.8,
+  "diagnostic_bins": [
+    "lt_0_7",
+    "0_7_to_0_9",
+    "0_9_to_1_1",
+    "1_1_to_1_3",
+    "gt_1_3"
+  ],
+  "do_not_tune_thresholds_inside_issue": true,
+  "expansion_threshold": 1.2,
+  "primary_date_filter": {
+    "end": "2025-12-31",
+    "label": "primary_2023_2025",
+    "start": "2023-01-01"
+  },
+  "proxy": "prior_day_tr_div_atr20",
+  "session_convention": "calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results",
+  "session_timezone": "America/New_York",
+  "supplemental_date_filters": [
+    {
+      "end": "2026-03-31",
+      "label": "supplemental_2026_q1",
+      "start": "2026-01-01"
+    }
+  ]
+}

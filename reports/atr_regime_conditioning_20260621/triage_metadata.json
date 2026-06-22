@@ -1,0 +1,46 @@
+{
+  "forbidden_verdicts": [
+    "pass_forward_validation",
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate"
+  ],
+  "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/19",
+  "local_ninja_parity_status": "under_sampled_recency_sanity_only_not_confirmatory",
+  "outputs": [
+    "ATR_REGIME_CONDITIONING_20260621.md",
+    "VERDICT.md",
+    "bin_grid_diagnostics.csv",
+    "concentration_by_state.csv",
+    "daily_state_table.csv",
+    "donchian_simple_60m_trades.csv",
+    "local_ninja_parity_check.csv",
+    "next_day_behavior_by_state.csv",
+    "signal_controls_unconditional.csv",
+    "signal_performance_by_state.csv",
+    "signal_year_splits.csv",
+    "source_lineage.md",
+    "state_definition.json",
+    "state_distribution_by_year.csv",
+    "state_quality_summary.csv",
+    "supplemental_2026_q1_next_day_behavior_by_state.csv",
+    "supplemental_2026_q1_state_distribution_by_year.csv",
+    "supplemental_2026_q1_state_quality_summary.csv",
+    "triage_metadata.json"
+  ],
+  "phase1_ok": true,
+  "phase1_reasons": [],
+  "phase2_ran": true,
+  "phase2_requested": true,
+  "phase2_result": "regime_proxy_useful_but_no_signal_edge",
+  "primary_date_filter": {
+    "end": "2025-12-31",
+    "label": "primary_2023_2025",
+    "start": "2023-01-01"
+  },
+  "rsi_status": "rsi_exact_frozen_definition_not_recovered_without_inference",
+  "schema_version": 1,
+  "supplemental_included": true,
+  "top_level_report": "ATR_REGIME_CONDITIONING_20260621.md",
+  "verdict": "regime_proxy_useful_but_no_signal_edge"
+}
