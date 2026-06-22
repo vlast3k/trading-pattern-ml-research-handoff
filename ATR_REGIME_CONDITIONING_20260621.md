@@ -2,7 +2,7 @@
 
 Issue: https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/19
 
-Verdict: `incomplete_reproducibility`
+Verdict: `regime_proxy_useful_but_no_signal_edge`
 
 This is a regime-conditioning research audit. It cannot approve paper/live trading and cannot directly promote a primary validation candidate.
 
@@ -13,15 +13,21 @@ Status: pass
 Reasons:
 - none
 
+Interpretation:
+- The ATR proxy separates next-day range directionally, but the spread is modest and noisy.
+- This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.
+- Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.
+
 ## Phase 2
 
-Requested: False
-Ran: false
-Skip reason: `phase2_not_implemented_in_initial_scaffold`
+Requested: True
+Ran: true
+RSI status: `rsi_exact_frozen_definition_not_recovered_without_inference`
 
 Interpretation:
-- If Phase 1 passes, this scaffold still reports `incomplete_reproducibility` because signal definitions and Phase 2 controls have not been executed.
-- A worker must extend or run Phase 2 in a later commit before claiming signal-edge results.
+- Simple Donchian 60m is diagnostic only and is not the failed confluence candidate.
+- RSI reversion is unavailable unless the exact frozen definition is recovered without inference.
+- No row in this issue can approve strategy promotion by itself.
 
 Guardrails:
 - Forbidden verdicts: pass_forward_validation, paper_ready, live_ready, primary_validation_candidate.
@@ -31,11 +37,30 @@ Guardrails:
 
 | Root | Compression days | Neutral days | Expansion days | Compression median range | Expansion median range | Expansion > compression |
 |---|---:|---:|---:|---:|---:|---|
-| MNQ | 361 | 319 | 312 | 230.25 | 268.5 | True |
-| NQ | 361 | 317 | 314 | 230.0 | 270.375 | True |
+| MNQ | 340 | 290 | 285 | 221.0 | 261.75 | True |
+| NQ | 340 | 288 | 287 | 220.5 | 262.75 | True |
+
+## Phase 2 Donchian Diagnostic
+
+| Root | State | Trades | Net dollars | PF | Gate pass |
+|---|---|---:|---:|---:|---|
+| MNQ | compression | 449 | -2296.50 | 0.915 | False |
+| MNQ | neutral | 399 | 2155.50 | 1.083 | False |
+| MNQ | expansion | 348 | -5924.50 | 0.790 | False |
+| NQ | compression | 452 | -7570.00 | 0.971 | False |
+| NQ | neutral | 400 | 19725.00 | 1.076 | False |
+| NQ | expansion | 348 | -58395.00 | 0.794 | False |
+
+This is a diagnostic A/B only. It is not a validation of the failed Donchian confluence candidate and does not promote a strategy.
+
+## Interpretation
+
+- Phase 1 separation is modest/noisy: expansion has higher median range than compression, but this is only a lagging realized-volatility proxy.
+- The proxy must not be described as actual gamma exposure or a proven structural market regime.
+- RSI remains unavailable because the exact frozen definition was not recovered without inference.
 
 ## Generated Artifacts
 
 - Report directory: `reports/atr_regime_conditioning_20260621`
 - Main tables: `state_distribution_by_year.csv`, `next_day_behavior_by_state.csv`, `bin_grid_diagnostics.csv`, `local_ninja_parity_check.csv`.
-- Signal tables are placeholders with explicit skip reasons because Phase 2 was not run in this scaffold.
+- Signal tables contain the diagnostic Donchian A/B when `--run-phase2` is used, plus explicit RSI unavailable rows.

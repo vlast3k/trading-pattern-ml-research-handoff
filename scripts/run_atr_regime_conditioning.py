@@ -1,10 +1,9 @@
 #!/usr/bin/env python3
 """Issue #19 ATR-regime conditioning audit.
 
-Runs the Phase 1 state audit for TR_{t-1}/ATR20. Phase 2 is not
-implemented in this scaffold because strategy interpretation should only follow
-a local review of the state proxy outputs. This script cannot approve
-paper/live trading or directly promote a primary validation candidate.
+Runs the Phase 1 state audit for TR_{t-1}/ATR20 and an optional Phase 2
+diagnostic Donchian A/B. This script cannot approve paper/live trading or
+directly promote a primary validation candidate.
 """
 from __future__ import annotations
 
@@ -20,7 +19,7 @@ from typing import Any
 import pandas as pd
 
 
-PHASE2_SKIP_REASON = "phase2_not_implemented_in_initial_scaffold"
+RSI_UNAVAILABLE_REASON = "rsi_exact_frozen_definition_not_recovered_without_inference"
 
 
 def parse_args() -> argparse.Namespace:
@@ -32,9 +31,10 @@ def parse_args() -> argparse.Namespace:
     p.add_argument(
         "--run-phase2",
         action="store_true",
-        help="Accepted only to record intent; Phase 2 signal execution is intentionally not implemented in this scaffold.",
+        help="Run the diagnostic Donchian Phase 2 A/B if Phase 1 passes. RSI remains unavailable unless exactly recovered.",
     )
     p.add_argument("--local-parity", action="store_true", help="Run Phase 1 summary on local Ninja OHLCV if present.")
+    p.add_argument("--include-supplemental", action="store_true", help="Also write supplemental 2026 Q1 Phase 1 summaries.")
     return p.parse_args()
 
 
@@ -106,6 +106,17 @@ def read_ohlcv(path: Path, cfg: dict[str, Any], label: str) -> pd.DataFrame:
         raise ValueError(f"No rows after filtering roots={sorted(roots)} from {path}")
     if (out["high"] < out["low"]).any():
         raise ValueError(f"Found high < low rows in {path}")
+    return out.reset_index(drop=True)
+
+
+def filter_by_session_window(df: pd.DataFrame, cfg: dict[str, Any], window: dict[str, Any]) -> pd.DataFrame:
+    x = add_session_date(df, cfg)
+    start = str(window["start"])
+    end = str(window["end"])
+    out = x[(x["session_date"] >= start) & (x["session_date"] <= end)].copy()
+    if out.empty:
+        raise ValueError(f"No rows for date window {window.get('label', '')}: {start}..{end}")
+    out["data_window_label"] = window.get("label", f"{start}_to_{end}")
     return out.reset_index(drop=True)
 
 
@@ -236,6 +247,292 @@ def phase1_gate(d: pd.DataFrame, cfg: dict[str, Any]) -> tuple[bool, list[str]]:
     return not reasons, reasons
 
 
+def resample_ohlcv(df: pd.DataFrame, timeframe: str, cfg: dict[str, Any]) -> pd.DataFrame:
+    x = add_session_date(df, cfg).copy()
+    rows: list[pd.DataFrame] = []
+    for root, part in x.groupby("root"):
+        bars = part.set_index("timestamp").sort_index().resample(timeframe).agg(
+            open=("open", "first"),
+            high=("high", "max"),
+            low=("low", "min"),
+            close=("close", "last"),
+            volume=("volume", "sum"),
+            session_date=("session_date", "last"),
+        )
+        bars = bars.dropna(subset=["open", "high", "low", "close"]).reset_index()
+        bars["root"] = root
+        rows.append(bars)
+    if not rows:
+        return pd.DataFrame()
+    return pd.concat(rows, ignore_index=True).sort_values(["root", "timestamp"]).reset_index(drop=True)
+
+
+def simulate_donchian(df: pd.DataFrame, daily: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
+    signal_cfg = cfg["signals"]["donchian_simple_60m"]
+    lookback = int(signal_cfg["lookback_bars"])
+    hold_bars = int(signal_cfg["hold_bars"])
+    bars = resample_ohlcv(df, signal_cfg.get("timeframe", "60min"), cfg)
+    state_lookup = daily[["root", "session_date", "state"]].copy()
+    trades: list[dict[str, Any]] = []
+
+    for root, part in bars.groupby("root"):
+        part = part.sort_values("timestamp").reset_index(drop=True).copy()
+        part["prior_high"] = part["high"].rolling(lookback, min_periods=lookback).max().shift(1)
+        part["prior_low"] = part["low"].rolling(lookback, min_periods=lookback).min().shift(1)
+        next_allowed = 0
+        for i, row in part.iterrows():
+            if i < next_allowed or pd.isna(row["prior_high"]) or pd.isna(row["prior_low"]):
+                continue
+            direction = 0
+            if row["close"] > row["prior_high"]:
+                direction = 1
+            elif row["close"] < row["prior_low"]:
+                direction = -1
+            if direction == 0:
+                continue
+            exit_i = i + hold_bars
+            if exit_i >= len(part):
+                continue
+            exit_row = part.iloc[exit_i]
+            entry = float(row["close"])
+            exit_price = float(exit_row["close"])
+            gross_points = (exit_price - entry) * direction
+            trades.append({
+                "signal": "donchian_simple_60m",
+                "root": root,
+                "direction": "long" if direction > 0 else "short",
+                "entry_timestamp": row["timestamp"].isoformat(),
+                "exit_timestamp": exit_row["timestamp"].isoformat(),
+                "session_date": row["session_date"],
+                "entry_price": entry,
+                "exit_price": exit_price,
+                "gross_points": gross_points,
+                "lookback_bars": lookback,
+                "hold_bars": hold_bars,
+            })
+            next_allowed = exit_i + 1
+
+    out = pd.DataFrame(trades)
+    if out.empty:
+        return out
+    out = out.merge(state_lookup, on=["root", "session_date"], how="left")
+    out["state"] = out["state"].fillna("unclassified")
+    return out
+
+
+def profit_factor(values: pd.Series) -> float:
+    winners = values[values > 0].sum()
+    losers = values[values < 0].sum()
+    if losers == 0:
+        return float("inf") if winners > 0 else 0.0
+    return float(winners / abs(losers))
+
+
+def max_drawdown(values: pd.Series) -> float:
+    equity = values.cumsum()
+    peak = equity.cummax()
+    dd = peak - equity
+    return float(dd.max()) if len(dd) else 0.0
+
+
+def summarize_trades(part: pd.DataFrame, gates: dict[str, Any]) -> dict[str, Any]:
+    if part.empty:
+        return {
+            "trades": 0,
+            "net_dollars": 0.0,
+            "profit_factor": 0.0,
+            "max_drawdown_dollars": 0.0,
+            "win_rate": 0.0,
+            "largest_winner_share": 0.0,
+            "best_day_share": 0.0,
+            "best_week_share": 0.0,
+            "net_excluding_largest": 0.0,
+            "passes_cost_and_concentration_gates": False,
+        }
+
+    net = float(part["net_dollars"].sum())
+    largest = float(part["net_dollars"].max())
+    day_net = part.groupby("session_date")["net_dollars"].sum()
+    week_net = part.groupby(pd.to_datetime(part["entry_timestamp"], utc=True).dt.strftime("%G-W%V"))["net_dollars"].sum()
+    largest_share = largest / net if net > 0 and largest > 0 else 0.0
+    best_day_share = float(day_net.max() / net) if net > 0 and len(day_net) and day_net.max() > 0 else 0.0
+    best_week_share = float(week_net.max() / net) if net > 0 and len(week_net) and week_net.max() > 0 else 0.0
+    net_ex_largest = net - largest if largest > 0 else net
+    pf = profit_factor(part["net_dollars"])
+    passes = (
+        net > float(gates["min_net_dollars"])
+        and pf >= float(gates["min_profit_factor"])
+        and largest_share < float(gates["max_concentration_share"])
+        and best_day_share < float(gates["max_concentration_share"])
+        and best_week_share < float(gates["max_concentration_share"])
+        and net_ex_largest > float(gates["min_net_without_largest"])
+    )
+    return {
+        "trades": int(len(part)),
+        "net_dollars": net,
+        "profit_factor": pf,
+        "max_drawdown_dollars": max_drawdown(part["net_dollars"]),
+        "win_rate": float((part["net_dollars"] > 0).mean()),
+        "largest_winner_share": largest_share,
+        "best_day_share": best_day_share,
+        "best_week_share": best_week_share,
+        "net_excluding_largest": net_ex_largest,
+        "passes_cost_and_concentration_gates": bool(passes),
+    }
+
+
+def run_phase2_outputs(out: Path, df: pd.DataFrame, daily: pd.DataFrame, cfg: dict[str, Any]) -> tuple[bool, str]:
+    trades = simulate_donchian(df, daily, cfg)
+    tick = float(cfg.get("tick_size", 0.25))
+    dpp_by_root = {str(k).upper(): float(v) for k, v in cfg.get("dollars_per_point_by_root", {}).items()}
+    default_dpp = float(cfg.get("dollars_per_point", 2.0))
+    slippages = cfg.get("signal_slippage_ticks", {}).get("donchian_simple_60m_diagnostic", [1.0, 2.0])
+    gates = cfg["phase2_gates"]
+    perf_rows: list[dict[str, Any]] = []
+    controls_rows: list[dict[str, Any]] = []
+    concentration_rows: list[dict[str, Any]] = []
+    year_rows: list[dict[str, Any]] = []
+
+    if trades.empty:
+        trades.to_csv(out / "donchian_simple_60m_trades.csv", index=False)
+        skipped_signal_outputs(out, cfg, "donchian_no_trades_generated_rsi_unavailable")
+        return False, "donchian_no_trades_generated"
+
+    all_costed: list[pd.DataFrame] = []
+    for slip in slippages:
+        costed = trades.copy()
+        costed["slippage_ticks_per_side"] = float(slip)
+        costed["round_turn_cost_points"] = 2.0 * float(slip) * tick
+        costed["dollars_per_point"] = costed["root"].map(dpp_by_root).fillna(default_dpp)
+        costed["net_points"] = costed["gross_points"] - costed["round_turn_cost_points"]
+        costed["net_dollars"] = costed["net_points"] * costed["dollars_per_point"] - float(cfg.get("commission_round_turn", 0.0))
+        all_costed.append(costed)
+
+        for root, root_part in costed.groupby("root"):
+            unconditional = summarize_trades(root_part, gates)
+            controls_rows.append({
+                "signal": "donchian_simple_60m",
+                "root": root,
+                "state": "unconditional",
+                "slippage_ticks_per_side": float(slip),
+                **unconditional,
+                "skip_reason": "",
+            })
+            concentration_rows.append({
+                "signal": "donchian_simple_60m",
+                "root": root,
+                "state": "unconditional",
+                "slippage_ticks_per_side": float(slip),
+                **{k: unconditional[k] for k in ["largest_winner_share", "best_day_share", "best_week_share", "net_excluding_largest"]},
+                "skip_reason": "",
+            })
+            root_part = root_part.copy()
+            root_part["year"] = pd.to_datetime(root_part["entry_timestamp"], utc=True).dt.year
+            for year, year_part in root_part.groupby("year"):
+                year_rows.append({
+                    "signal": "donchian_simple_60m",
+                    "root": root,
+                    "state": "unconditional",
+                    "year": int(year),
+                    "slippage_ticks_per_side": float(slip),
+                    **summarize_trades(year_part, gates),
+                })
+
+            for state in ["compression", "neutral", "expansion"]:
+                state_part = root_part[root_part["state"] == state]
+                summary = summarize_trades(state_part, gates)
+                perf_rows.append({
+                    "signal": "donchian_simple_60m",
+                    "root": root,
+                    "state": state,
+                    "slippage_ticks_per_side": float(slip),
+                    **{k: summary[k] for k in ["trades", "net_dollars", "profit_factor", "max_drawdown_dollars", "win_rate", "passes_cost_and_concentration_gates"]},
+                    "skip_reason": "",
+                })
+                concentration_rows.append({
+                    "signal": "donchian_simple_60m",
+                    "root": root,
+                    "state": state,
+                    "slippage_ticks_per_side": float(slip),
+                    **{k: summary[k] for k in ["largest_winner_share", "best_day_share", "best_week_share", "net_excluding_largest"]},
+                    "skip_reason": "",
+                })
+                for year, year_part in state_part.assign(year=pd.to_datetime(state_part["entry_timestamp"], utc=True).dt.year).groupby("year"):
+                    year_rows.append({
+                        "signal": "donchian_simple_60m",
+                        "root": root,
+                        "state": state,
+                        "year": int(year),
+                        "slippage_ticks_per_side": float(slip),
+                        **summarize_trades(year_part, gates),
+                    })
+
+    costed_trades = pd.concat(all_costed, ignore_index=True)
+    costed_trades.to_csv(out / "donchian_simple_60m_trades.csv", index=False)
+
+    rsi_perf = [
+        {
+            "signal": "rsi_reversion_30m",
+            "root": root,
+            "state": state,
+            "slippage_ticks_per_side": 1.0,
+            "trades": 0,
+            "net_dollars": "",
+            "profit_factor": "",
+            "max_drawdown_dollars": "",
+            "win_rate": "",
+            "passes_cost_and_concentration_gates": False,
+            "skip_reason": RSI_UNAVAILABLE_REASON,
+        }
+        for root in sorted(df["root"].unique())
+        for state in ["compression", "neutral", "expansion"]
+    ]
+    rsi_controls = [
+        {
+            "signal": "rsi_reversion_30m",
+            "root": root,
+            "state": "unconditional",
+            "slippage_ticks_per_side": 1.0,
+            "trades": 0,
+            "net_dollars": "",
+            "profit_factor": "",
+            "max_drawdown_dollars": "",
+            "win_rate": "",
+            "largest_winner_share": "",
+            "best_day_share": "",
+            "best_week_share": "",
+            "net_excluding_largest": "",
+            "passes_cost_and_concentration_gates": False,
+            "skip_reason": RSI_UNAVAILABLE_REASON,
+        }
+        for root in sorted(df["root"].unique())
+    ]
+
+    pd.DataFrame([*perf_rows, *rsi_perf]).to_csv(out / "signal_performance_by_state.csv", index=False)
+    pd.DataFrame([*controls_rows, *rsi_controls]).to_csv(out / "signal_controls_unconditional.csv", index=False)
+    pd.DataFrame(concentration_rows + [
+        {
+            "signal": "rsi_reversion_30m",
+            "root": root,
+            "state": state,
+            "slippage_ticks_per_side": 1.0,
+            "largest_winner_share": "",
+            "best_day_share": "",
+            "best_week_share": "",
+            "net_excluding_largest": "",
+            "skip_reason": RSI_UNAVAILABLE_REASON,
+        }
+        for root in sorted(df["root"].unique())
+        for state in ["compression", "neutral", "expansion", "unconditional"]
+    ]).to_csv(out / "concentration_by_state.csv", index=False)
+    pd.DataFrame(year_rows).to_csv(out / "signal_year_splits.csv", index=False)
+
+    gate_passes = [row for row in perf_rows if row["passes_cost_and_concentration_gates"] and row["slippage_ticks_per_side"] == 2.0]
+    if gate_passes:
+        return True, "conditional_signal_edge_diagnostic_only"
+    return True, "regime_proxy_useful_but_no_signal_edge"
+
+
 def skipped_signal_outputs(out: Path, cfg: dict[str, Any], reason: str) -> None:
     signals = sorted(cfg.get("signals", {}).keys()) or ["unknown_signal"]
     states = ["compression", "neutral", "expansion"]
@@ -284,7 +581,7 @@ def skipped_signal_outputs(out: Path, cfg: dict[str, Any], reason: str) -> None:
     pd.DataFrame(concentration_rows, columns=concentration_cols).to_csv(out / "concentration_by_state.csv", index=False)
 
 
-def write_lineage(out: Path, cfg: dict[str, Any], sources: list[dict[str, Any]]) -> None:
+def write_lineage(out: Path, cfg: dict[str, Any], sources: list[dict[str, Any]], primary_window: dict[str, Any]) -> None:
     lines = [
         "# Source Lineage",
         "",
@@ -304,20 +601,35 @@ def write_lineage(out: Path, cfg: dict[str, Any], sources: list[dict[str, Any]])
         f"Daily session date = timestamp converted to `{cfg.get('session_timezone')}` and local calendar date.",
         f"Session convention label: `{cfg.get('session_convention', 'local_calendar_date')}`.",
         "",
+        "## Primary data window",
+        "",
+        f"Primary Databento output is filtered to `{primary_window.get('label')}`: `{primary_window.get('start')}` through `{primary_window.get('end')}`.",
+        "Supplemental windows, when requested, are written separately and are not pooled into the primary verdict.",
+        "",
         "## Lookahead guard",
         "",
         "State for day t uses prior-day TR and ATR over completed prior sessions only. Current-day high/low is not included in the state for that day.",
         "",
         "## Scope guard",
         "",
-        "This scaffold writes Phase 2 placeholders only. It cannot approve paper/live trading and cannot directly promote a candidate.",
+        "This audit cannot approve paper/live trading and cannot directly promote a candidate.",
     ]
     (out / "source_lineage.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def write_verdict(out: Path, cfg: dict[str, Any], ok: bool, reasons: list[str], phase2_requested: bool) -> str:
+def write_verdict(
+    out: Path,
+    cfg: dict[str, Any],
+    ok: bool,
+    reasons: list[str],
+    phase2_requested: bool,
+    phase2_ran: bool,
+    phase2_verdict: str | None,
+) -> str:
     if not ok:
         verdict = "regime_proxy_rejected"
+    elif phase2_ran:
+        verdict = phase2_verdict or "regime_proxy_useful_but_no_signal_edge"
     else:
         verdict = "incomplete_reproducibility"
     text = [
@@ -338,15 +650,21 @@ def write_verdict(out: Path, cfg: dict[str, Any], ok: bool, reasons: list[str], 
     text += [f"- {reason}" for reason in reasons] or ["- none"]
     text += [
         "",
+        "Interpretation:",
+        "- The ATR proxy separates next-day range directionally, but the spread is modest and noisy.",
+        "- This is a lagging realized-volatility state proxy, not evidence of a structural dealer-gamma regime.",
+        "- Treat the result as permission to continue diagnostics, not as proof of a useful trading regime.",
+        "",
         "## Phase 2",
         "",
         f"Requested: {phase2_requested}",
-        "Ran: false",
-        f"Skip reason: `{PHASE2_SKIP_REASON}`",
+        f"Ran: {str(phase2_ran).lower()}",
+        f"RSI status: `{RSI_UNAVAILABLE_REASON}`",
         "",
         "Interpretation:",
-        "- If Phase 1 passes, this scaffold still reports `incomplete_reproducibility` because signal definitions and Phase 2 controls have not been executed.",
-        "- A worker must extend or run Phase 2 in a later commit before claiming signal-edge results.",
+        "- Simple Donchian 60m is diagnostic only and is not the failed confluence candidate.",
+        "- RSI reversion is unavailable unless the exact frozen definition is recovered without inference.",
+        "- No row in this issue can approve strategy promotion by itself.",
         "",
         "Guardrails:",
         "- Forbidden verdicts: pass_forward_validation, paper_ready, live_ready, primary_validation_candidate.",
@@ -398,12 +716,39 @@ def write_top_level_report(date: str, out: Path) -> Path:
             )
         text.append("")
 
+    perf_path = out / "signal_performance_by_state.csv"
+    if perf_path.exists():
+        perf = pd.read_csv(perf_path)
+        donchian = perf[(perf.get("signal") == "donchian_simple_60m") & (perf.get("slippage_ticks_per_side") == 2.0)].copy()
+        if not donchian.empty:
+            text += [
+                "## Phase 2 Donchian Diagnostic",
+                "",
+                "| Root | State | Trades | Net dollars | PF | Gate pass |",
+                "|---|---|---:|---:|---:|---|",
+            ]
+            for row in donchian.to_dict("records"):
+                text.append(
+                    f"| {row.get('root')} | {row.get('state')} | {row.get('trades')} | {float(row.get('net_dollars', 0.0)):.2f} | {float(row.get('profit_factor', 0.0)):.3f} | {row.get('passes_cost_and_concentration_gates')} |"
+                )
+            text += [
+                "",
+                "This is a diagnostic A/B only. It is not a validation of the failed Donchian confluence candidate and does not promote a strategy.",
+                "",
+            ]
+
     text += [
+        "## Interpretation",
+        "",
+        "- Phase 1 separation is modest/noisy: expansion has higher median range than compression, but this is only a lagging realized-volatility proxy.",
+        "- The proxy must not be described as actual gamma exposure or a proven structural market regime.",
+        "- RSI remains unavailable because the exact frozen definition was not recovered without inference.",
+        "",
         "## Generated Artifacts",
         "",
         f"- Report directory: `{repo_rel(out)}`",
         "- Main tables: `state_distribution_by_year.csv`, `next_day_behavior_by_state.csv`, `bin_grid_diagnostics.csv`, `local_ninja_parity_check.csv`.",
-        "- Signal tables are placeholders with explicit skip reasons because Phase 2 was not run in this scaffold.",
+        "- Signal tables contain the diagnostic Donchian A/B when `--run-phase2` is used, plus explicit RSI unavailable rows.",
         "",
     ]
     target.write_text("\n".join(text), encoding="utf-8")
@@ -417,7 +762,9 @@ def main() -> None:
     prepare_output_dir(out, args.force)
 
     primary_path = Path(cfg["data_sources"]["databento_ohlcv_1m"])
-    primary = read_ohlcv(primary_path, cfg, "databento_ohlcv_1m")
+    full_primary = read_ohlcv(primary_path, cfg, "databento_ohlcv_1m")
+    primary_window = cfg.get("primary_date_filter", {"start": "2023-01-01", "end": "2025-12-31", "label": "primary_2023_2025"})
+    primary = filter_by_session_window(full_primary, cfg, primary_window)
     sources = [source_info(primary, "databento_ohlcv_1m", primary_path, "primary_long_history")]
 
     daily = daily_state(primary, cfg)
@@ -428,7 +775,21 @@ def main() -> None:
     state_quality_summary(daily, cfg).to_csv(out / "state_quality_summary.csv", index=False)
 
     phase1_ok, reasons = phase1_gate(daily, cfg)
-    skipped_signal_outputs(out, cfg, PHASE2_SKIP_REASON if args.run_phase2 else "phase2_not_requested_in_initial_scaffold")
+    phase2_ran = False
+    phase2_verdict: str | None = None
+    if args.run_phase2 and phase1_ok:
+        phase2_ran, phase2_verdict = run_phase2_outputs(out, primary, daily, cfg)
+    else:
+        skipped_signal_outputs(out, cfg, "phase2_not_requested" if not args.run_phase2 else "phase1_failed_phase2_skipped")
+
+    if args.include_supplemental:
+        for window in cfg.get("supplemental_date_filters", []):
+            label = str(window.get("label", "supplemental"))
+            supplemental = filter_by_session_window(full_primary, cfg, window)
+            supplemental_daily = daily_state(supplemental, cfg)
+            behavior(supplemental_daily, "state").to_csv(out / f"{label}_next_day_behavior_by_state.csv", index=False)
+            state_quality_summary(supplemental_daily, cfg).to_csv(out / f"{label}_state_quality_summary.csv", index=False)
+            distribution(supplemental_daily).to_csv(out / f"{label}_state_distribution_by_year.csv", index=False)
 
     if args.local_parity:
         local_path = Path(cfg["data_sources"].get("local_ninja_ohlcv_1m", ""))
@@ -447,20 +808,25 @@ def main() -> None:
         "session_timezone": cfg.get("session_timezone"),
         "session_convention": cfg.get("session_convention", "local_calendar_date"),
         **cfg["state_definition"],
+        "primary_date_filter": primary_window,
+        "supplemental_date_filters": cfg.get("supplemental_date_filters", []),
     }
     (out / "state_definition.json").write_text(json.dumps(state_def, indent=2, sort_keys=True) + "\n", encoding="utf-8")
-    write_lineage(out, cfg, sources)
-    verdict = write_verdict(out, cfg, phase1_ok, reasons, args.run_phase2)
+    write_lineage(out, cfg, sources, primary_window)
+    verdict = write_verdict(out, cfg, phase1_ok, reasons, args.run_phase2, phase2_ran, phase2_verdict)
     top_report = write_top_level_report(args.date, out)
     metadata = {
         "schema_version": 1,
         "issue": cfg.get("issue_url"),
         "verdict": verdict,
+        "primary_date_filter": primary_window,
+        "supplemental_included": bool(args.include_supplemental),
         "phase1_ok": phase1_ok,
         "phase1_reasons": reasons,
         "phase2_requested": bool(args.run_phase2),
-        "phase2_ran": False,
-        "phase2_skip_reason": PHASE2_SKIP_REASON,
+        "phase2_ran": phase2_ran,
+        "phase2_result": phase2_verdict,
+        "rsi_status": RSI_UNAVAILABLE_REASON,
         "top_level_report": repo_rel(top_report),
         "outputs": sorted([path.name for path in out.iterdir()] + [top_report.name, "triage_metadata.json"]),
         "forbidden_verdicts": cfg.get("forbidden_verdicts", []),

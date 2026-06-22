@@ -7,6 +7,22 @@
   "tick_size": 0.25,
   "dollars_per_point": 2.0,
   "commission_round_turn": 0.0,
+  "dollars_per_point_by_root": {
+    "MNQ": 2.0,
+    "NQ": 20.0
+  },
+  "primary_date_filter": {
+    "start": "2023-01-01",
+    "end": "2025-12-31",
+    "label": "primary_2023_2025"
+  },
+  "supplemental_date_filters": [
+    {
+      "start": "2026-01-01",
+      "end": "2026-03-31",
+      "label": "supplemental_2026_q1"
+    }
+  ],
   "data_sources": {
     "databento_ohlcv_1m": "../trading/data/databento_ohlcv_1m/front_1m.parquet",
     "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
@@ -52,7 +68,7 @@
       "timeframe": "60min",
       "lookback_bars": 20,
       "hold_bars": 3,
-      "notes": "Simple 60m Donchian diagnostic A/B without confluence_score. This is not mnq_60_donchian_confluence_ge6. Phase 2 is not implemented in the initial scaffold."
+      "notes": "Simple 60m Donchian diagnostic A/B without confluence_score. This is not mnq_60_donchian_confluence_ge6 and must remain diagnostic only."
     }
   },
   "signal_slippage_ticks": {

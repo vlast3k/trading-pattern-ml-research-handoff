@@ -1,3 +1,3 @@
 root,compression_days,neutral_days,expansion_days,compression_median_range,neutral_median_range,expansion_median_range,expansion_median_range_above_compression,session_convention
-MNQ,361,319,312,230.25,268.25,268.5,True,calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results
-NQ,361,317,314,230.0,267.5,270.375,True,calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results
+MNQ,340,290,285,221.0,261.125,261.75,True,calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results
+NQ,340,288,287,220.5,258.75,262.75,True,calendar_date_after_converting_utc_bars_to_America_New_York; document if changed before interpreting results
