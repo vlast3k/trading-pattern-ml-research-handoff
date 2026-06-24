@@ -1,0 +1,3 @@
+root,state,days,years_with_min_rows,median_lunch_range_div_morning_range_lift_vs_unconditional,contraction_rate_lift_vs_unconditional,trend_continuation_failure_rate_lift_vs_unconditional,largest_month_share,largest_week_share,sparse,unstable_year_splits,materially_separates
+MNQ,exhaustion,134,3,-0.17832812522047892,0.22300846365780655,0.01312164278210537,0.05970149253731343,0.029850746268656716,False,False,True
+NQ,exhaustion,135,3,-0.17333624706162176,0.21847425114357386,0.01688062564556586,0.05925925925925926,0.02962962962962963,False,False,True
