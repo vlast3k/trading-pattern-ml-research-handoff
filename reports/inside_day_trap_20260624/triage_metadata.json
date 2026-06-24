@@ -1,0 +1,45 @@
+{
+  "forbidden_verdicts": [
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate",
+    "pass_forward_validation"
+  ],
+  "gate_reasons": [],
+  "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/23",
+  "local_parity_included": true,
+  "outputs": [
+    "INSIDE_DAY_TRAP_20260624.md",
+    "VERDICT.md",
+    "chop_rotation_metrics.csv",
+    "concentration_or_stability_checks.csv",
+    "inside_trap_state_summary.csv",
+    "local_ninja_parity_check.csv",
+    "new_high_low_metrics.csv",
+    "rest_of_rth_outcomes_by_state.csv",
+    "rest_of_rth_outcomes_by_sub_state.csv",
+    "session_state_table.csv",
+    "source_lineage.md",
+    "supplemental_2026_q1.csv",
+    "triage_metadata.json",
+    "year_splits.csv"
+  ],
+  "parent_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/21",
+  "permitted_verdicts": [
+    "session_regime_proxy_rejected",
+    "session_regime_proxy_diagnostic_only",
+    "session_regime_proxy_useful_no_signal_edge",
+    "incomplete_reproducibility"
+  ],
+  "phase": "state_variable_audit_only",
+  "primary_date_filter": {
+    "end": "2025-12-31",
+    "label": "primary_2023_2025",
+    "start": "2023-01-01"
+  },
+  "rsi_ran": false,
+  "schema_version": 1,
+  "strategy_signals_ran": false,
+  "supplemental_included": true,
+  "verdict": "session_regime_proxy_diagnostic_only"
+}
