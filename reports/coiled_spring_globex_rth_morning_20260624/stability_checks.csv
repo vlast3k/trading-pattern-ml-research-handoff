@@ -1,0 +1,5 @@
+root,state,days,years_with_min_rows,median_range_div_atr20_lift_vs_unconditional,closed_outside_rate_lift_vs_unconditional,largest_month_share,largest_week_share,sparse,unstable_year_splits,materially_separates
+MNQ,compression,160,3,-0.15843110642281322,0.055585989375830036,0.05625,0.025,False,False,True
+MNQ,expansion,222,3,0.14454946460574503,-0.05471806467822404,0.04954954954954955,0.02252252252252252,False,False,True
+NQ,compression,165,3,-0.15610107910091803,0.04479053483037543,0.05454545454545454,0.024242424242424242,False,False,True
+NQ,expansion,220,3,0.13022454315608634,-0.06430037426053364,0.05,0.022727272727272728,False,False,True

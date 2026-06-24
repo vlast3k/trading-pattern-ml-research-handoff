@@ -1,0 +1,65 @@
+{
+  "issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/22",
+  "parent_issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/21",
+  "roots": ["MNQ", "NQ"],
+  "default_root": "MNQ",
+  "session_timezone": "America/New_York",
+  "tick_size": 0.25,
+  "data_sources": {
+    "databento_ohlcv_1m": "../trading/data/databento_ohlcv_1m/front_1m.parquet",
+    "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
+  },
+  "primary_date_filter": {
+    "start": "2023-01-01",
+    "end": "2025-12-31",
+    "label": "primary_2023_2025"
+  },
+  "supplemental_date_filter": {
+    "start": "2026-01-01",
+    "end": "2026-03-31",
+    "label": "supplemental_2026_q1"
+  },
+  "column_aliases": {
+    "timestamp": ["timestamp", "ts", "time", "datetime", "bar_time", "event_time", "ts_event"],
+    "root": ["root", "instrument_root", "symbol_root"],
+    "symbol": ["symbol", "instrument", "contract", "raw_symbol"],
+    "open": ["open", "o"],
+    "high": ["high", "h"],
+    "low": ["low", "l"],
+    "close": ["close", "c"],
+    "volume": ["volume", "v", "total_volume"]
+  },
+  "session_windows": {
+    "globex_start": "18:00",
+    "globex_end": "09:30",
+    "rth_morning_start": "09:30",
+    "rth_morning_end": "11:30"
+  },
+  "state_definition": {
+    "proxy": "globex_range_div_prior_20_session_median_globex_range",
+    "rolling_reference_sessions": 20,
+    "compression_threshold": 0.7,
+    "expansion_threshold": 1.3,
+    "diagnostic_bins": ["lt_0_5", "0_5_to_0_7", "0_7_to_0_9", "0_9_to_1_1", "1_1_to_1_3", "gt_1_3"],
+    "do_not_tune_thresholds_inside_issue": true
+  },
+  "phase1_gates": {
+    "min_days_per_primary_state": 30,
+    "min_years_with_primary_states": 2,
+    "min_days_per_state_per_year": 5,
+    "min_morning_range_ratio_lift": 0.05,
+    "min_breakout_rate_lift": 0.05
+  },
+  "permitted_verdicts": [
+    "session_regime_proxy_rejected",
+    "session_regime_proxy_diagnostic_only",
+    "session_regime_proxy_useful_no_signal_edge",
+    "incomplete_reproducibility"
+  ],
+  "forbidden_verdicts": [
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate",
+    "pass_forward_validation"
+  ]
+}
