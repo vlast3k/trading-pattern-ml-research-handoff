@@ -1,0 +1,77 @@
+{
+  "issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/23",
+  "parent_issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/21",
+  "roots": ["MNQ", "NQ"],
+  "default_root": "MNQ",
+  "session_timezone": "America/New_York",
+  "tick_size": 0.25,
+  "data_sources": {
+    "databento_ohlcv_1m": "../trading/data/databento_ohlcv_1m/front_1m.parquet",
+    "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
+  },
+  "primary_date_filter": {
+    "start": "2023-01-01",
+    "end": "2025-12-31",
+    "label": "primary_2023_2025"
+  },
+  "supplemental_date_filter": {
+    "start": "2026-01-01",
+    "end": "2026-03-31",
+    "label": "supplemental_2026_q1"
+  },
+  "column_aliases": {
+    "timestamp": ["timestamp", "ts", "time", "datetime", "bar_time", "event_time", "ts_event"],
+    "root": ["root", "instrument_root", "symbol_root"],
+    "symbol": ["symbol", "instrument", "contract", "raw_symbol"],
+    "open": ["open", "o"],
+    "high": ["high", "h"],
+    "low": ["low", "l"],
+    "close": ["close", "c"],
+    "volume": ["volume", "v", "total_volume"]
+  },
+  "session_windows": {
+    "globex_start_prior_day": "18:00",
+    "rth_open": "09:30",
+    "first_hour_end": "10:30",
+    "rth_close": "16:00"
+  },
+  "state_definition": {
+    "trapped_state": "first_hour_high < globex_high and first_hour_low > globex_low",
+    "broken_state": "first_hour_high >= globex_high or first_hour_low <= globex_low",
+    "near_boundary_threshold_fraction_of_globex_range": 0.05,
+    "substates_are_diagnostic_only": true,
+    "do_not_tune_thresholds_inside_issue": true
+  },
+  "outcome_definition": {
+    "first_hour_vwap_price": "hlc3_volume_weighted",
+    "rotation_count": "count close-to-close sign changes inside rest-of-RTH after ignoring zero changes",
+    "chop_index": "rotation_count / max(nonzero_close_move_count - 1, 1)",
+    "new_rth_high_after_10_30": "rest_high > first_hour_high",
+    "new_rth_low_after_10_30": "rest_low < first_hour_low",
+    "new_session_high_or_low_after_10_30": "rest breaks max(globex_high, first_hour_high) or min(globex_low, first_hour_low)"
+  },
+  "phase1_gates": {
+    "min_trapped_days": 30,
+    "min_broken_days": 30,
+    "min_years_with_trapped": 2,
+    "min_years_with_broken": 2,
+    "min_days_per_state_per_year": 5,
+    "min_rest_range_ratio_lift": 0.05,
+    "min_new_rth_extreme_lift": 0.05,
+    "min_chop_index_lift": 0.02,
+    "max_largest_month_share": 0.35,
+    "max_largest_week_share": 0.20
+  },
+  "permitted_verdicts": [
+    "session_regime_proxy_rejected",
+    "session_regime_proxy_diagnostic_only",
+    "session_regime_proxy_useful_no_signal_edge",
+    "incomplete_reproducibility"
+  ],
+  "forbidden_verdicts": [
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate",
+    "pass_forward_validation"
+  ]
+}
