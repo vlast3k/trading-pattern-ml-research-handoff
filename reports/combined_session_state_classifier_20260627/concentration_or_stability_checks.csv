@@ -1,0 +1,13 @@
+root,combined_state,days,years_with_min_rows,largest_month_share,largest_week_share,sparse,concentrated
+MNQ,globex_compression__inside_trapped,19,2,0.21052631578947367,0.10526315789473684,True,False
+MNQ,globex_expansion__inside_broken,162,3,0.04938271604938271,0.030864197530864196,False,False
+MNQ,morning_exhaustion__inside_trapped,15,2,0.13333333333333333,0.13333333333333333,True,False
+MNQ,morning_exhaustion__inside_broken,119,3,0.058823529411764705,0.025210084033613446,False,False
+MNQ,globex_compression__morning_exhaustion,12,1,0.16666666666666666,0.08333333333333333,True,False
+MNQ,globex_expansion__morning_exhaustion,78,3,0.0641025641025641,0.038461538461538464,False,False
+NQ,globex_compression__inside_trapped,18,2,0.16666666666666666,0.05555555555555555,True,False
+NQ,globex_expansion__inside_broken,160,3,0.05,0.03125,False,False
+NQ,morning_exhaustion__inside_trapped,15,2,0.13333333333333333,0.13333333333333333,True,False
+NQ,morning_exhaustion__inside_broken,120,3,0.058333333333333334,0.025,False,False
+NQ,globex_compression__morning_exhaustion,12,1,0.16666666666666666,0.08333333333333333,True,False
+NQ,globex_expansion__morning_exhaustion,77,3,0.06493506493506493,0.03896103896103896,False,False

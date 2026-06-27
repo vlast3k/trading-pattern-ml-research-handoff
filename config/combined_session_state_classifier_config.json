@@ -1,0 +1,137 @@
+{
+  "issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/24",
+  "parent_issue_url": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/21",
+  "roots": ["MNQ", "NQ"],
+  "session_timezone": "America/New_York",
+  "primary_date_filter": {
+    "start": "2023-01-01",
+    "end": "2025-12-31",
+    "label": "primary_2023_2025"
+  },
+  "supplemental_date_filter": {
+    "start": "2026-01-01",
+    "end": "2026-03-31",
+    "label": "supplemental_2026_q1"
+  },
+  "data_sources": {
+    "databento_ohlcv_1m": "../trading/data/databento_ohlcv_1m/front_1m.parquet",
+    "local_ninja_ohlcv_1m": "../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet"
+  },
+  "child_configs": {
+    "coiled_spring": "config/coiled_spring_globex_rth_morning_config.json",
+    "lunch_lull": "config/lunch_lull_exhaustion_config.json",
+    "inside_day_trap": "config/inside_day_trap_config.json"
+  },
+  "primary_input_reports": {
+    "coiled_spring": "reports/coiled_spring_globex_rth_morning_20260624/session_state_table.csv",
+    "lunch_lull": "reports/lunch_lull_exhaustion_20260624/session_state_table.csv",
+    "inside_day_trap": "reports/inside_day_trap_20260624/session_state_table.csv"
+  },
+  "candidate_combined_states": [
+    {
+      "name": "globex_compression__inside_trapped",
+      "target_window": "rest_of_rth",
+      "question": "Overnight compression plus first-hour containment for internal rest-of-RTH expansion and lower full-boundary extension.",
+      "conditions": {
+        "globex_state": "compression",
+        "inside_state": "trapped"
+      },
+      "best_individual_labels": ["globex_compression", "inside_trapped"],
+      "metrics": [
+        {"name": "median_rest_rth_range_div_first_hour_range", "direction": "higher"},
+        {"name": "new_session_high_or_low_after_10_30_rate", "direction": "lower"}
+      ]
+    },
+    {
+      "name": "globex_expansion__inside_broken",
+      "target_window": "rest_of_rth",
+      "question": "Overnight expansion plus first-hour boundary break for continuation/full-session extension.",
+      "conditions": {
+        "globex_state": "expansion",
+        "inside_state": "broken"
+      },
+      "best_individual_labels": ["globex_expansion", "inside_broken"],
+      "metrics": [
+        {"name": "median_rest_rth_range_div_first_hour_range", "direction": "higher"},
+        {"name": "new_session_high_or_low_after_10_30_rate", "direction": "higher"}
+      ]
+    },
+    {
+      "name": "morning_exhaustion__inside_trapped",
+      "target_window": "lunch",
+      "question": "Morning exhaustion plus first-hour containment for lunch contraction.",
+      "conditions": {
+        "morning_state": "exhaustion",
+        "inside_state": "trapped"
+      },
+      "best_individual_labels": ["morning_exhaustion", "inside_trapped"],
+      "metrics": [
+        {"name": "median_lunch_range_div_morning_range", "direction": "lower"},
+        {"name": "lunch_range_contraction_rate", "direction": "higher"}
+      ]
+    },
+    {
+      "name": "morning_exhaustion__inside_broken",
+      "target_window": "lunch",
+      "question": "Morning exhaustion plus first-hour boundary break for lunch contraction.",
+      "conditions": {
+        "morning_state": "exhaustion",
+        "inside_state": "broken"
+      },
+      "best_individual_labels": ["morning_exhaustion", "inside_broken"],
+      "metrics": [
+        {"name": "median_lunch_range_div_morning_range", "direction": "lower"},
+        {"name": "lunch_range_contraction_rate", "direction": "higher"}
+      ]
+    },
+    {
+      "name": "globex_compression__morning_exhaustion",
+      "target_window": "lunch",
+      "question": "Coiled Spring plus morning exhaustion for lunch contraction.",
+      "conditions": {
+        "globex_state": "compression",
+        "morning_state": "exhaustion"
+      },
+      "best_individual_labels": ["globex_compression", "morning_exhaustion"],
+      "metrics": [
+        {"name": "median_lunch_range_div_morning_range", "direction": "lower"},
+        {"name": "lunch_range_contraction_rate", "direction": "higher"}
+      ]
+    },
+    {
+      "name": "globex_expansion__morning_exhaustion",
+      "target_window": "lunch",
+      "question": "Globex expansion plus morning exhaustion for lunch contraction.",
+      "conditions": {
+        "globex_state": "expansion",
+        "morning_state": "exhaustion"
+      },
+      "best_individual_labels": ["globex_expansion", "morning_exhaustion"],
+      "metrics": [
+        {"name": "median_lunch_range_div_morning_range", "direction": "lower"},
+        {"name": "lunch_range_contraction_rate", "direction": "higher"}
+      ]
+    }
+  ],
+  "phase1_gates": {
+    "min_combined_days": 30,
+    "min_years_with_combined": 2,
+    "min_days_per_state_per_year": 5,
+    "min_material_improvement": 0.03,
+    "min_metrics_improved_per_candidate": 2,
+    "max_largest_month_share": 0.35,
+    "max_largest_week_share": 0.20
+  },
+  "permitted_verdicts": [
+    "session_regime_proxy_rejected",
+    "session_regime_proxy_diagnostic_only",
+    "session_regime_proxy_useful_no_signal_edge",
+    "incomplete_reproducibility"
+  ],
+  "forbidden_verdicts": [
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate",
+    "pass_forward_validation"
+  ]
+}

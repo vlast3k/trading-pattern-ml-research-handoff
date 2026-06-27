@@ -1,0 +1,54 @@
+{
+  "forbidden_verdicts": [
+    "paper_ready",
+    "live_ready",
+    "primary_validation_candidate",
+    "pass_forward_validation"
+  ],
+  "gate_reasons": [
+    "MNQ:globex_compression__inside_trapped:too_sparse:19",
+    "MNQ:globex_compression__morning_exhaustion:too_sparse:12",
+    "MNQ:morning_exhaustion__inside_trapped:too_sparse:15",
+    "NQ:globex_compression__inside_trapped:too_sparse:18",
+    "NQ:globex_compression__morning_exhaustion:too_sparse:12",
+    "NQ:morning_exhaustion__inside_trapped:too_sparse:15",
+    "no_non_sparse_combined_state_materially_improves_best_individual_across_required_metrics"
+  ],
+  "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/24",
+  "local_parity_included": true,
+  "model_trained": false,
+  "outputs": [
+    "COMBINED_SESSION_STATE_CLASSIFIER_20260627.md",
+    "VERDICT.md",
+    "combined_session_table.csv",
+    "combined_state_summary.csv",
+    "comparison_single_vs_combined.csv",
+    "concentration_or_stability_checks.csv",
+    "local_ninja_parity_check.csv",
+    "outcomes_by_combined_state.csv",
+    "source_lineage.md",
+    "state_inputs_used.json",
+    "supplemental_2026_q1.csv",
+    "triage_metadata.json",
+    "year_splits.csv"
+  ],
+  "parent_issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/21",
+  "permitted_verdicts": [
+    "session_regime_proxy_rejected",
+    "session_regime_proxy_diagnostic_only",
+    "session_regime_proxy_useful_no_signal_edge",
+    "incomplete_reproducibility"
+  ],
+  "phase": "combined_state_classifier_audit_only",
+  "primary_date_filter": {
+    "end": "2025-12-31",
+    "label": "primary_2023_2025",
+    "start": "2023-01-01"
+  },
+  "rsi_ran": false,
+  "schema_version": 1,
+  "strategy_signals_ran": false,
+  "supplemental_included": true,
+  "thresholds_optimized": false,
+  "verdict": "session_regime_proxy_rejected"
+}

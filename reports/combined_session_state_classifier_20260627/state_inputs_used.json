@@ -1,0 +1,198 @@
+{
+  "candidate_combined_states": [
+    {
+      "best_individual_labels": [
+        "globex_compression",
+        "inside_trapped"
+      ],
+      "conditions": {
+        "globex_state": "compression",
+        "inside_state": "trapped"
+      },
+      "metrics": [
+        {
+          "direction": "higher",
+          "name": "median_rest_rth_range_div_first_hour_range"
+        },
+        {
+          "direction": "lower",
+          "name": "new_session_high_or_low_after_10_30_rate"
+        }
+      ],
+      "name": "globex_compression__inside_trapped",
+      "question": "Overnight compression plus first-hour containment for internal rest-of-RTH expansion and lower full-boundary extension.",
+      "target_window": "rest_of_rth"
+    },
+    {
+      "best_individual_labels": [
+        "globex_expansion",
+        "inside_broken"
+      ],
+      "conditions": {
+        "globex_state": "expansion",
+        "inside_state": "broken"
+      },
+      "metrics": [
+        {
+          "direction": "higher",
+          "name": "median_rest_rth_range_div_first_hour_range"
+        },
+        {
+          "direction": "higher",
+          "name": "new_session_high_or_low_after_10_30_rate"
+        }
+      ],
+      "name": "globex_expansion__inside_broken",
+      "question": "Overnight expansion plus first-hour boundary break for continuation/full-session extension.",
+      "target_window": "rest_of_rth"
+    },
+    {
+      "best_individual_labels": [
+        "morning_exhaustion",
+        "inside_trapped"
+      ],
+      "conditions": {
+        "inside_state": "trapped",
+        "morning_state": "exhaustion"
+      },
+      "metrics": [
+        {
+          "direction": "lower",
+          "name": "median_lunch_range_div_morning_range"
+        },
+        {
+          "direction": "higher",
+          "name": "lunch_range_contraction_rate"
+        }
+      ],
+      "name": "morning_exhaustion__inside_trapped",
+      "question": "Morning exhaustion plus first-hour containment for lunch contraction.",
+      "target_window": "lunch"
+    },
+    {
+      "best_individual_labels": [
+        "morning_exhaustion",
+        "inside_broken"
+      ],
+      "conditions": {
+        "inside_state": "broken",
+        "morning_state": "exhaustion"
+      },
+      "metrics": [
+        {
+          "direction": "lower",
+          "name": "median_lunch_range_div_morning_range"
+        },
+        {
+          "direction": "higher",
+          "name": "lunch_range_contraction_rate"
+        }
+      ],
+      "name": "morning_exhaustion__inside_broken",
+      "question": "Morning exhaustion plus first-hour boundary break for lunch contraction.",
+      "target_window": "lunch"
+    },
+    {
+      "best_individual_labels": [
+        "globex_compression",
+        "morning_exhaustion"
+      ],
+      "conditions": {
+        "globex_state": "compression",
+        "morning_state": "exhaustion"
+      },
+      "metrics": [
+        {
+          "direction": "lower",
+          "name": "median_lunch_range_div_morning_range"
+        },
+        {
+          "direction": "higher",
+          "name": "lunch_range_contraction_rate"
+        }
+      ],
+      "name": "globex_compression__morning_exhaustion",
+      "question": "Coiled Spring plus morning exhaustion for lunch contraction.",
+      "target_window": "lunch"
+    },
+    {
+      "best_individual_labels": [
+        "globex_expansion",
+        "morning_exhaustion"
+      ],
+      "conditions": {
+        "globex_state": "expansion",
+        "morning_state": "exhaustion"
+      },
+      "metrics": [
+        {
+          "direction": "lower",
+          "name": "median_lunch_range_div_morning_range"
+        },
+        {
+          "direction": "higher",
+          "name": "lunch_range_contraction_rate"
+        }
+      ],
+      "name": "globex_expansion__morning_exhaustion",
+      "question": "Globex expansion plus morning exhaustion for lunch contraction.",
+      "target_window": "lunch"
+    }
+  ],
+  "issue_22_coiled_spring": {
+    "accepted_interpretation": "Volatility/session-state input only; not a standalone breakout filter.",
+    "compression": "ratio < 0.7",
+    "expansion": "ratio > 1.3",
+    "neutral": "0.7 <= ratio <= 1.3",
+    "preserved_primary_metrics": {
+      "MNQ_compression_median_RTH_morning_range_ATR20": 0.437,
+      "MNQ_expansion_median_RTH_morning_range_ATR20": 0.74,
+      "NQ_compression_median_RTH_morning_range_ATR20": 0.437,
+      "NQ_expansion_median_RTH_morning_range_ATR20": 0.724
+    },
+    "source": "reports/coiled_spring_globex_rth_morning_20260624",
+    "state": "Globex range / prior 20 completed Globex-session median range"
+  },
+  "issue_23_inside_day_trap": {
+    "accepted_interpretation": "Context input; delayed/internal RTH expansion, not a standalone chop or directional signal.",
+    "broken": "first_hour_high >= Globex_high or first_hour_low <= Globex_low",
+    "preserved_primary_metrics": {
+      "MNQ_trapped_median_rest_first_hour_range": 1.519,
+      "MNQ_trapped_new_full_session_extreme_rate": 0.77,
+      "MNQ_unconditional_median_rest_first_hour_range": 1.344,
+      "MNQ_unconditional_new_full_session_extreme_rate": 0.846,
+      "NQ_trapped_median_rest_first_hour_range": 1.534,
+      "NQ_trapped_new_full_session_extreme_rate": 0.775,
+      "NQ_unconditional_median_rest_first_hour_range": 1.348,
+      "NQ_unconditional_new_full_session_extreme_rate": 0.849
+    },
+    "source": "reports/inside_day_trap_20260624",
+    "state": "First RTH hour inside or broken versus completed Globex range",
+    "trapped": "first_hour_high < Globex_high and first_hour_low > Globex_low"
+  },
+  "issue_27_lunch_lull_exhaustion": {
+    "accepted_interpretation": "Strongest Phase 1 state; predicts lunch compression, not yet a tradable signal.",
+    "exhaustion": "ratio > 1.5",
+    "preserved_primary_metrics": {
+      "MNQ_exhaustion_contraction_rate": 0.433,
+      "MNQ_exhaustion_median_lunch_morning_range": 0.522,
+      "MNQ_unconditional_contraction_rate": 0.21,
+      "MNQ_unconditional_median_lunch_morning_range": 0.7,
+      "NQ_exhaustion_contraction_rate": 0.43,
+      "NQ_exhaustion_median_lunch_morning_range": 0.524,
+      "NQ_unconditional_contraction_rate": 0.211,
+      "NQ_unconditional_median_lunch_morning_range": 0.698
+    },
+    "source": "reports/lunch_lull_exhaustion_20260624",
+    "standard": "ratio <= 1.5",
+    "state": "RTH morning range / prior 20 completed RTH-morning median range"
+  },
+  "prohibitions": [
+    "no_strategy_signals",
+    "no_threshold_optimization",
+    "no_complex_model",
+    "no_paper_or_live_trading_approval",
+    "no_NinjaTrader_execution",
+    "no_broker_or_IBKR_work"
+  ]
+}
