@@ -12,7 +12,7 @@
     "NQ:globex_compression__inside_trapped:too_sparse:18",
     "NQ:globex_compression__morning_exhaustion:too_sparse:12",
     "NQ:morning_exhaustion__inside_trapped:too_sparse:15",
-    "no_non_sparse_combined_state_materially_improves_best_individual_across_required_metrics"
+    "no_non_sparse_combined_state_materially_improves_best_individual_across_required_metrics_on_all_roots"
   ],
   "issue": "https://github.com/vlast3k/trading-pattern-ml-research-handoff/issues/24",
   "local_parity_included": true,

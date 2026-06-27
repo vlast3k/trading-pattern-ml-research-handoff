@@ -1,14 +1,14 @@
 # Source Lineage
 
-Generated: 2026-06-27T08:08:44.686615+00:00
+Generated: 2026-06-27T08:21:51.621630+00:00
 
-| Source | Path | Rows | Role |
-|---|---|---:|---|
-| coiled_spring | `reports/coiled_spring_globex_rth_morning_20260624/session_state_table.csv` | 1546 | primary_merged_child_issue_table |
-| lunch_lull | `reports/lunch_lull_exhaustion_20260624/session_state_table.csv` | 1546 | primary_merged_child_issue_table |
-| inside_day_trap | `reports/inside_day_trap_20260624/session_state_table.csv` | 1546 | primary_merged_child_issue_table |
-| databento_ohlcv_1m_full_view | `../trading/data/databento_ohlcv_1m/front_1m.parquet` | 126 | supplemental_recomputed_child_states |
-| local_ninja_ohlcv_1m | `../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet` | 96 | under_sampled_recency_sanity_only |
+| Source | Path | Rows | Row Meaning | Role |
+|---|---|---:|---|---|
+| coiled_spring | `reports/coiled_spring_globex_rth_morning_20260624/session_state_table.csv` | 1546 | child_session_state_rows | primary_merged_child_issue_table |
+| lunch_lull | `reports/lunch_lull_exhaustion_20260624/session_state_table.csv` | 1546 | child_session_state_rows | primary_merged_child_issue_table |
+| inside_day_trap | `reports/inside_day_trap_20260624/session_state_table.csv` | 1546 | child_session_state_rows | primary_merged_child_issue_table |
+| databento_ohlcv_1m_source_for_supplemental | `../trading/data/databento_ohlcv_1m/front_1m.parquet` | 126 | joined_combined_session_rows | supplemental_recomputed_child_states |
+| local_ninja_ohlcv_1m_source_for_parity | `../trading/data/ninja_canonical_ohlcv_1m/front_1m.parquet` | 94 | joined_combined_session_rows | under_sampled_recency_sanity_only |
 
 ## Combination Method
 

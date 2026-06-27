@@ -331,6 +331,20 @@ def comparison_single_vs_combined(df: pd.DataFrame, cfg: dict[str, Any]) -> pd.D
     return pd.DataFrame(rows)
 
 
+def add_concentration_to_comparison(comparison: pd.DataFrame, concentration: pd.DataFrame) -> pd.DataFrame:
+    if comparison.empty or concentration.empty:
+        return comparison
+    cols = ["root", "combined_state", "days", "years_with_min_rows", "sparse", "concentrated"]
+    out = comparison.merge(
+        concentration[cols].rename(columns={"days": "concentration_days"}),
+        on=["root", "combined_state"],
+        how="left",
+    )
+    out["sparse"] = normalize_bool(out["sparse"])
+    out["concentrated"] = normalize_bool(out["concentrated"])
+    return out
+
+
 def year_splits(df: pd.DataFrame, cfg: dict[str, Any]) -> pd.DataFrame:
     rows: list[dict[str, Any]] = []
     eligible = df[df["eligible_primary_states"]].copy()
@@ -395,7 +409,7 @@ def verdict_and_reasons(df: pd.DataFrame, cfg: dict[str, Any], comparison: pd.Da
         return "incomplete_reproducibility", ["no_joined_sessions"]
     gates = cfg["phase1_gates"]
     reasons: list[str] = []
-    passing_candidates: list[str] = []
+    passing_candidates_by_name: dict[str, set[str]] = {}
     for (root, candidate), part in comparison.groupby(["root", "combined_state"]):
         c = concentration[(concentration["root"] == root) & (concentration["combined_state"] == candidate)]
         if c.empty:
@@ -413,10 +427,20 @@ def verdict_and_reasons(df: pd.DataFrame, cfg: dict[str, Any], comparison: pd.Da
             continue
         improved = int(part["materially_improves_best_individual"].sum())
         if improved >= int(gates["min_metrics_improved_per_candidate"]):
-            passing_candidates.append(f"{root}:{candidate}")
+            passing_candidates_by_name.setdefault(candidate, set()).add(root)
 
-    if not passing_candidates:
-        reasons.append("no_non_sparse_combined_state_materially_improves_best_individual_across_required_metrics")
+    required_roots = {str(root).upper() for root in cfg.get("roots", [])}
+    cross_root_candidates = {
+        candidate: roots
+        for candidate, roots in passing_candidates_by_name.items()
+        if roots >= required_roots
+    }
+    if not cross_root_candidates:
+        if passing_candidates_by_name:
+            for candidate, roots in sorted(passing_candidates_by_name.items()):
+                missing = sorted(required_roots - roots)
+                reasons.append(f"{candidate}:not_confirmed_on_all_roots:missing_{','.join(missing)}")
+        reasons.append("no_non_sparse_combined_state_materially_improves_best_individual_across_required_metrics_on_all_roots")
         return "session_regime_proxy_rejected", sorted(set(reasons))
     return "session_regime_proxy_diagnostic_only", []
 
@@ -489,11 +513,11 @@ def write_source_lineage(path: Path, cfg: dict[str, Any], sources: list[dict[str
         "",
         f"Generated: {datetime.now(timezone.utc).isoformat()}",
         "",
-        "| Source | Path | Rows | Role |",
-        "|---|---|---:|---|",
+        "| Source | Path | Rows | Row Meaning | Role |",
+        "|---|---|---:|---|---|",
     ]
     for src in sources:
-        lines.append(f"| {src['source']} | `{src['path']}` | {src['rows']} | {src['role']} |")
+        lines.append(f"| {src['source']} | `{src['path']}` | {src['rows']} | {src['row_meaning']} | {src['role']} |")
     lines.extend([
         "",
         "## Combination Method",
@@ -553,24 +577,26 @@ def write_verdict(path: Path, cfg: dict[str, Any], verdict: str, reasons: list[s
         "",
         "## Lunch Comparison Against Best Individual",
         "",
-        "| Root | Combined State | Metric | Best Individual | Best Value | Combined Value | Lift vs Best |",
-        "|---|---|---|---|---:|---:|---:|",
+        "| Root | Combined State | Days | Sparse | Metric | Best Individual | Best Value | Combined Value | Lift vs Best |",
+        "|---|---|---:|---|---|---|---:|---:|---:|",
     ])
     for _, row in lunch_rows.sort_values(["root", "combined_state", "metric"]).iterrows():
         lines.append(
-            f"| {row['root']} | {row['combined_state']} | {row['metric']} | {row['best_individual_label']} | "
+            f"| {row['root']} | {row['combined_state']} | {int(row['combined_days'])} | {row.get('sparse', '')} | "
+            f"{row['metric']} | {row['best_individual_label']} | "
             f"{row['best_individual_value']:.3f} | {row['combined_value']:.3f} | {row['lift_vs_best_individual']:.3f} |"
         )
     lines.extend([
         "",
         "## Rest-Of-RTH Comparison",
         "",
-        "| Root | Combined State | Metric | Best Individual | Best Value | Combined Value | Lift vs Best |",
-        "|---|---|---|---|---:|---:|---:|",
+        "| Root | Combined State | Days | Sparse | Metric | Best Individual | Best Value | Combined Value | Lift vs Best |",
+        "|---|---|---:|---|---|---|---:|---:|---:|",
     ])
     for _, row in rest_rows.sort_values(["root", "combined_state", "metric"]).iterrows():
         lines.append(
-            f"| {row['root']} | {row['combined_state']} | {row['metric']} | {row['best_individual_label']} | "
+            f"| {row['root']} | {row['combined_state']} | {int(row['combined_days'])} | {row.get('sparse', '')} | "
+            f"{row['metric']} | {row['best_individual_label']} | "
             f"{row['best_individual_value']:.3f} | {row['combined_value']:.3f} | {row['lift_vs_best_individual']:.3f} |"
         )
     lines.extend([
@@ -584,14 +610,15 @@ def write_verdict(path: Path, cfg: dict[str, Any], verdict: str, reasons: list[s
     path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
-def lineage_entry(source: str, path: Path, df: pd.DataFrame, role: str) -> dict[str, Any]:
-    return {"source": source, "path": repo_rel(path), "rows": int(len(df)), "role": role}
+def lineage_entry(source: str, path: Path, rows: int, row_meaning: str, role: str) -> dict[str, Any]:
+    return {"source": source, "path": repo_rel(path), "rows": int(rows), "row_meaning": row_meaning, "role": role}
 
 
 def process_window(tables: dict[str, pd.DataFrame], cfg: dict[str, Any]) -> dict[str, pd.DataFrame]:
     combined = combined_session_table(tables)
-    comparison = comparison_single_vs_combined(combined, cfg) if not combined.empty else pd.DataFrame()
     concentration = concentration_checks(combined, cfg) if not combined.empty else pd.DataFrame()
+    comparison = comparison_single_vs_combined(combined, cfg) if not combined.empty else pd.DataFrame()
+    comparison = add_concentration_to_comparison(comparison, concentration)
     return {
         "combined_session_table": combined,
         "combined_state_summary": combined_state_summary(combined, cfg) if not combined.empty else pd.DataFrame(),
@@ -636,7 +663,7 @@ def main() -> int:
     sources: list[dict[str, Any]] = []
     for key, path_text in cfg["primary_input_reports"].items():
         path = Path(path_text)
-        sources.append(lineage_entry(key, path, primary_tables[key], "primary_merged_child_issue_table"))
+        sources.append(lineage_entry(key, path, len(primary_tables[key]), "child_session_state_rows", "primary_merged_child_issue_table"))
 
     modules = child_modules()
     supplemental_out = pd.DataFrame()
@@ -651,7 +678,7 @@ def main() -> int:
         )
         supplemental = process_window(supplemental_tables, cfg)
         supplemental_out = add_window_column(supplemental["comparison_single_vs_combined"], cfg["supplemental_date_filter"]["label"])
-        sources.append(lineage_entry("databento_ohlcv_1m_full_view", data_path, supplemental_tables["coiled_spring"], "supplemental_recomputed_child_states"))
+        sources.append(lineage_entry("databento_ohlcv_1m_source_for_supplemental", data_path, len(supplemental["combined_session_table"]), "joined_combined_session_rows", "supplemental_recomputed_child_states"))
     write_csv(supplemental_out, out_dir / "supplemental_2026_q1.csv")
 
     local_out = pd.DataFrame()
@@ -671,7 +698,7 @@ def main() -> int:
             )
             local = process_window(local_tables, cfg)
             local_out = add_window_column(local["comparison_single_vs_combined"], "local_ninja_under_sampled_sanity_only")
-            sources.append(lineage_entry("local_ninja_ohlcv_1m", local_path, local_tables["coiled_spring"], "under_sampled_recency_sanity_only"))
+            sources.append(lineage_entry("local_ninja_ohlcv_1m_source_for_parity", local_path, len(local["combined_session_table"]), "joined_combined_session_rows", "under_sampled_recency_sanity_only"))
     write_csv(local_out, out_dir / "local_ninja_parity_check.csv")
 
     state_inputs = state_inputs_used(cfg)
